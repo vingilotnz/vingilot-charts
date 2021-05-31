@@ -7,6 +7,19 @@
         center: [0, 0],
         zoom: 1,
       }"
+      :geolocate-control="{
+        show: true,
+        position: 'top-right',
+        options: {
+          positionOptions: {
+            enableHighAccuracy: true,
+            timeout: 3000,
+            maximumAge: 500,
+          },
+          trackUserLocation: true,
+          fitBoundsOptions: 17,
+        },
+      }"
     />
   </div>
 </template>
@@ -43,6 +56,22 @@ export default {
   mounted: () => {
     document.addEventListener(
       'wheel',
+      (e) => {
+        e.preventDefault()
+      },
+      { passive: false }
+    )
+
+    document.addEventListener(
+      'dblclick',
+      (e) => {
+        e.preventDefault()
+      },
+      { passive: false }
+    )
+
+    document.addEventListener(
+      'touchmove',
       (e) => {
         e.preventDefault()
       },

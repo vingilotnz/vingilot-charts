@@ -1,6 +1,6 @@
-import mbtiles from "./modules/mbtiles";
+import path from 'path'
+import fs from 'fs'
 const webpack = require('webpack');
-import { resolve } from 'path'
 
 export default {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
@@ -46,9 +46,9 @@ export default {
   modules: [
     ['~/modules/mbtiles', 
       //{ chart : "./charts/test.mbtiles" }
-      { chart : "./charts/google_hybrid_satellite.mbtiles" }
+      { chart : "./charts/out.mbtiles" }
     ]
-  ],
+  ],  
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
@@ -60,5 +60,11 @@ export default {
     ],
   },
 
+  server: {
+    https: {
+      key: fs.readFileSync(path.resolve(__dirname, 'server.key')),
+      cert: fs.readFileSync(path.resolve(__dirname, 'server.crt'))
+    }
+  }
 
 }
