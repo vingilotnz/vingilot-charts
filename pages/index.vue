@@ -6,6 +6,8 @@
         style: style,
         center: [0, 0],
         zoom: 1,
+        logoPosition: 'bottom-right',
+        logoEnabled: false,
       }"
       :geolocate-control="{
         show: true,
@@ -17,15 +19,19 @@
             maximumAge: 500,
           },
           trackUserLocation: true,
-          fitBoundsOptions: 17,
+          fitBoundsOptions: {
+            maxZoom: 17,
+          },
         },
       }"
+      @map-load="loaded"
     />
   </div>
 </template>
 
 <script>
 import Mapbox from 'mapbox-gl-vue'
+/* global mapboxgl */
 
 export default {
   components: { Mapbox },
@@ -77,6 +83,24 @@ export default {
       },
       { passive: false }
     )
+  },
+  methods: {
+    loaded(map) {
+      map.addControl(
+        new mapboxgl.ScaleControl({
+          maxWidth: 200,
+          unit: 'nautical',
+        }),
+        'bottom-left'
+      )
+      map.addControl(
+        new mapboxgl.ScaleControl({
+          maxWidth: 200,
+          unit: 'metric',
+        }),
+        'bottom-left'
+      )
+    },
   },
 }
 </script>
