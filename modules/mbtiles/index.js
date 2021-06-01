@@ -1,7 +1,6 @@
 import MBTiles from '@mapbox/mbtiles'
 import chokidar, { watch } from 'chokidar'
-import { path } from 'osenv'
-import { sources } from 'webpack'
+const path = require('path')
 
 export default function (moduleOptions) {
 
@@ -11,59 +10,59 @@ export default function (moduleOptions) {
 
   // Setup File Watcher
 
-  function addDatabase(path) {
-    if (!path.match(/\.mbtiles$/)) {
+  function addDatabase(file_path) {
+    if (!file_path.match(/\.mbtiles$/)) {
       return
     }
 
-    console.log(`Detected possible mbtile database ${path}`)
-    new MBTiles(path + "?mode=ro", function (err, instance) {
+    console.log(`Detected possible mbtile database ${file_path}`)
+    new MBTiles(file_path + "?mode=ro", function (err, instance) {
       if (err) {
-        console.error(`Could not load '${path}' (${err})`)
+        console.error(`Could not load '${file_path}' (${err})`)
         return
       }
 
       instance.getInfo((err, info) => {
         if (err) {
-          console.error(`Could not get metadata from '${path}' (${err})`)
+          console.error(`Could not get metadata from '${file_path}' (${err})`)
           return
         }
 
         let mbtile = {
-          path: path,
+          file_path: file_path,
           instance: instance
         }
 
-        for (let key of ['name', 'minzoom', 'maxzoom', 'format']) {
+        for (let key of ['name', 'description', 'attribution', 'minzoom', 'maxzoom', 'format', 'bounds', 'version']) {
           if (!(key in info)) {
-            console.error(`Could not process '${path}' ( '${key}' not present in metadata )`)
+            console.error(`Could not process '${file_path}' ( '${key}' not present in metadata )`)
             return
           }
 
           mbtile[key] = info[key]
         }
 
-        if (mbtiles.has(info.name)) {
-          console.error(`Could not process '${path}' ( name '${info.name}' already used by '${mbtiles.get(info.name).path}' )`)
+        mbtile['tileset_id'] = info['tileset_id'] || path.basename(file_path, '.mbtiles')
+
+        if (mbtiles.has(mbtile['tileset_id'])) {
+          console.error(`Could not process '${file_path}' ( tileset_id '${mbtile['tileset_id']}' already used by '${mbtiles.get(mbtile['tileset_id']).file_path}' )`)
           return
         }
 
-        console.log(`Loaded ${path} (${JSON.stringify(info)})`)
+        console.log(`Loaded ${file_path} (${mbtile['tileset_id']})`)
 
-        mbtiles.set(info.name, mbtile)
+        mbtiles.set(mbtile['tileset_id'], mbtile)
 
         // TODO : Force update of tile list in client.
       })
     })
   }
 
-  function removeDatabase(path) {
-    mbtiles.forEach((mbtile, name) => {
-      if (mbtile.path == path) {
-        console.log(`Unloading '${path}' (${name})`)
-        mbtiles.delete(name)
-        // TODO : Force update of tile list in client.
-        return;
+  function removeDatabase(file_path) {
+    mbtiles.forEach((mbtile, tileset_id) => {
+      if (mbtile.file_path == file_path) {
+        console.log(`Unloading '${file_path}' (${tileset_id})`)
+        mbtiles.delete(tileset_id)
       }
     })
   }
@@ -82,13 +81,13 @@ export default function (moduleOptions) {
 
   file_watcher.on('add', addDatabase)
     .on('unlink', removeDatabase)
-    .on('change', (path) => {
-      removeDatabase(path)
-      addDatabase(path)
+    .on('change', (file_path) => {
+      removeDatabase(file_path)
+      addDatabase(file_path)
     })
     .on('ready', () => {
       console.log(file_watcher.getWatched())
-    })
+    }) 
 
 
   this.nuxt.hook('listen', async function (server, { port }) {
@@ -99,14 +98,20 @@ export default function (moduleOptions) {
     return file_watcher.close()
   })
 
+  function getTilesJson({tileset_id, name, description, attribution, format, minzoom, maxzoom, bounds, version }) {
+    return {   
+      tilejson: '2.2.0',
+      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.{${format}}`],
+      name, version, description, attribution, minzoom, maxzoom, bounds,
+    }
+  }
+
   function getSourceList() {
     let sources = {}
-    for (let [name, { minzoom, maxzoom, format }] of mbtiles) {
-      sources[name] = {
+    for (let [tileset_id] of mbtiles) {
+      sources[tileset_id] = {
         type: 'raster',
-        tiles: [`tiles/${name}/{z}/{x}/{y}.{${format}}`],
-        minzoom: minzoom,
-        maxzoom: maxzoom,
+        url: [`tiles/${tileset_id}.json`],
         tileSize: 256,
       }
     }
@@ -118,12 +123,11 @@ export default function (moduleOptions) {
 
   // Uses "Connect" https://github.com/senchalabs/connect#appuseroute-fn
   function tileRequestHandler(req, res, next) {
-    const mapbox_url_format = /^\/?(?:(?<tileset_id>[\w\.]+)\/)?(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)(?<dpi>@2x)?(?:\.(?<format>[\w\.]+))?/
+    const mapbox_url_format = /^\/(?:(?<tileset_id>[\w\.]+)\/)?(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)(?<dpi>@2x)?(?:\.(?<format>[\w\.]+))?/
     let args = req.url.match(mapbox_url_format)
 
     if ((args == undefined) || (args.groups == undefined)) {
-      tileListHandler(req, res, next)
-      return
+      return false;
     }
 
     args = args.groups
@@ -133,8 +137,8 @@ export default function (moduleOptions) {
     if (args.tileset_id) {
       if (!(mbtiles.has(args.tileset_id))) {
         res.writeHead(404, { 'Content-Type': "text/plain" });
-        res.end(`Source not found (${args.tileset_id}), valid options are : ${Array.from(mbtiles.keys()).join(", ")}`);
-        return;
+        res.end(`Tileset not found (${args.tileset_id}), valid options are : ${Array.from(mbtiles.keys()).join(", ")}`);
+        return true;
       }
       mbtiles_instance = mbtiles.get(args.tileset_id).instance
     }
@@ -144,9 +148,7 @@ export default function (moduleOptions) {
 
     switch (args.format) {
       default: {
-        res.writeHead(400, { 'Content-Type': "text/plain" });
-        res.end('ERROR ! Malformed request :' + req.url)
-        return;
+        return false;
       }
 
       // Handle grid requests
@@ -162,7 +164,7 @@ export default function (moduleOptions) {
               res.end()
             }
           })
-        return;
+          break;
       }
 
       // Handle probable image requests
@@ -190,23 +192,70 @@ export default function (moduleOptions) {
               res.end()
             }
           })
-        return;
+        break;
       }
     }
+    return true;
   }
 
   function tileListHandler(req, res, next) {
+    if ( ! req.url.match(/^\/(?:\?.*)?/) ) {
+      next()
+      return false
+    }
     let sources = getSourceList()
     let json = JSON.stringify(sources, null, 2)
     res.writeHead(200, { 'Content-Type': "application/json" })
     res.write(json)
     res.end()
+
+    return true
+  }
+
+  function tileJSONHandler(req, res) {
+    let args = req.url.match(/^\/(?<tileset_id>[^\/]+?)(?:\.json)?(?:\?.*)?$/)
+    if ((args == undefined) || (args.groups == undefined)) {
+      return false;
+    }
+
+    args = args.groups
+
+    let tileset;
+
+    if (args.tileset_id) {
+      if (!(mbtiles.has(args.tileset_id))) {
+        res.writeHead(404, { 'Content-Type': "text/plain" });
+        res.end(`Tileset not found (${args.tileset_id}), valid options are : ${Array.from(mbtiles.keys()).join(", ")}`);
+        return true;
+      }
+      tileset = mbtiles.get(args.tileset_id)
+    }
+    else {
+      tileset = mbtiles.values().next().value
+    }
+
+    let sources = getTilesJson(tileset)
+    let json = JSON.stringify(sources, null, 2)
+    res.writeHead(200, { 'Content-Type': "application/json" })
+    res.write(json)
+    res.end()
+
+    return true
   }
 
   this.addServerMiddleware(
     {
       path: '/tiles',
-      handler: tileRequestHandler,
+      handler: (req, res) => {
+        if(!(    tileRequestHandler(req, res)
+              || tileJSONHandler(req, res)
+              || tileListHandler(req, res)
+        )){
+                res.writeHead(400, { 'Content-Type': "text/plain" });
+                res.end('ERROR ! Malformed request :' + req.url)
+                return;
+        }
+      },
       prefix: false
     },
   )
