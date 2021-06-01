@@ -8,6 +8,7 @@
   "license": "CC BY SA NC",
   "dependencies": {
     "@mapbox/mbtiles": "^0.12.1",
+    "chokidar": "^3.5.1",
     "core-js": "^3.9.1",
     "mapbox-gl": "^2.3.0",
     "mapbox-gl-vue": "^2.0.4",
