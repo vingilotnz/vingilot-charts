@@ -1,8 +1,8 @@
-import path from 'path'
-import fs from 'fs'
+const path = require('path')
+const fs = require('fs')
 const webpack = require('webpack');
 
-export default {
+module.exports = {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
 
@@ -44,6 +44,7 @@ export default {
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
+    '@nuxt/http',
     [ // mbtiles server
       '~/modules/mbtiles',
       {
@@ -52,7 +53,11 @@ export default {
         ],
       },
     ],
-  ],  
+    //[ // Boat Data 
+    //  '~/modules/boat',
+    //  {},
+    //],
+  ],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {

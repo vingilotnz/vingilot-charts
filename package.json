@@ -5,14 +5,19 @@
   "main": "index.js",
   "repository": "https://github.com/vingilotnz/vingilot-charts.git",
   "author": "Joshua BRADFIELD <joshbradfield@gmail.com>",
-  "license": "CC BY SA NC",
+  "license": "CC-BY-NC-SA-4.0",
   "dependencies": {
     "@mapbox/mbtiles": "^0.12.1",
+    "@nuxt/http": "^0.6.4",
+    "@serialport/parser-readline": "^9.0.7",
     "chokidar": "^3.5.1",
     "core-js": "^3.9.1",
+    "global": "^4.4.0",
     "mapbox-gl": "^2.3.0",
     "mapbox-gl-vue": "^2.0.4",
+    "nmea": "^0.1.2",
     "nuxt": "^2.15.3",
+    "nuxt-start": "^2.15.6",
     "sqlite3": "^5.0.2"
   },
   "devDependencies": {

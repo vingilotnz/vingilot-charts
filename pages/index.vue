@@ -20,7 +20,7 @@
           },
           trackUserLocation: true,
           fitBoundsOptions: {
-            maxZoom: 17,
+            maxZoom: 15,
           },
         },
       }"
@@ -35,27 +35,24 @@ import Mapbox from 'mapbox-gl-vue'
 
 export default {
   components: { Mapbox },
-  data() {
+  asyncData: async ({ $http }) => {
+    const sources = await $http.$get('/tiles')
+
+    const layers = []
+    for (const tilesetId in sources) {
+      const tileset = sources[tilesetId]
+      layers.push({
+        id: tileset.name,
+        type: tileset.type,
+        source: tilesetId,
+      })
+    }
+
     return {
       style: {
         version: 8,
-        sources: {
-          satellite: {
-            type: 'raster',
-            tiles: ['tiles/' + '{z}/{x}/{y}.jpg'],
-            minzoom: 0,
-            maxzoom: 18,
-            tileSize: 256,
-          },
-        },
-        layers: [
-          {
-            id: 'satellite',
-            source: 'satellite',
-            sourcelayer: 'satellite',
-            type: 'raster',
-          },
-        ],
+        sources,
+        layers,
       },
     }
   },

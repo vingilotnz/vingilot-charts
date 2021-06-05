@@ -1,28 +1,30 @@
 import MBTiles from '@mapbox/mbtiles'
 import chokidar, { watch } from 'chokidar'
-const path = require('path')
+import { cpuUsage } from 'process'
+const { basename } = require('path')
 
-export default function (moduleOptions) {
+export default function ({charts}) {
 
-  console.log("Starting MBTile Server...")
+  const mbtiles = new Map()
 
-  let mbtiles = new Map();
+  let fileWatcher = undefined
 
-  // Setup File Watcher
-
-  function addDatabase(file_path) {
+  const addDatabase = (file_path)  => {
+    
     if (!file_path.match(/\.mbtiles$/)) {
       return
     }
+    
 
     console.log(`Detected possible mbtile database ${file_path}`)
     new MBTiles(file_path + "?mode=ro", function (err, instance) {
+
       if (err) {
         console.error(`Could not load '${file_path}' (${err})`)
         return
       }
 
-      instance.getInfo((err, info) => {
+      instance.getInfo(function (err, info) {
         if (err) {
           console.error(`Could not get metadata from '${file_path}' (${err})`)
           return
@@ -42,7 +44,7 @@ export default function (moduleOptions) {
           mbtile[key] = info[key]
         }
 
-        mbtile['tileset_id'] = info['tileset_id'] || path.basename(file_path, '.mbtiles')
+        mbtile['tileset_id'] = info['tileset_id'] || basename(file_path, '.mbtiles')
 
         if (mbtiles.has(mbtile['tileset_id'])) {
           console.error(`Could not process '${file_path}' ( tileset_id '${mbtile['tileset_id']}' already used by '${mbtiles.get(mbtile['tileset_id']).file_path}' )`)
@@ -52,77 +54,56 @@ export default function (moduleOptions) {
         console.log(`Loaded ${file_path} (${mbtile['tileset_id']})`)
 
         mbtiles.set(mbtile['tileset_id'], mbtile)
+        //$store[namespace].ADD_TILE(mbtile['tileset_id'], mbtile)
 
         // TODO : Force update of tile list in client.
       })
     })
   }
 
-  function removeDatabase(file_path) {
+  const removeDatabase = (file_path) => {
     mbtiles.forEach((mbtile, tileset_id) => {
       if (mbtile.file_path == file_path) {
         console.log(`Unloading '${file_path}' (${tileset_id})`)
+        
         mbtiles.delete(tileset_id)
+        //$store[namespace].REMOVE_TILE(mbtile['tileset_id'], mbtile)
       }
     })
   }
 
-
-  const file_watcher = chokidar.watch(
-    moduleOptions.charts,
-    {
-      persistent: true,
-      awaitWriteFinish: true,
-    }
-  ).on('error', (error) => {
-    console.error("File watcher error")
-    console.error(error)
-  })
-
-  file_watcher.on('add', addDatabase)
-    .on('unlink', removeDatabase)
-    .on('change', (file_path) => {
-      removeDatabase(file_path)
-      addDatabase(file_path)
+  this.start = async () => {
+    fileWatcher = chokidar.watch(
+      charts,
+      {
+        persistent: true,
+        awaitWriteFinish: true,
+      }
+    ).on('error', (error) => {
+      console.error("File watcher error")
+      console.error(error)
     })
-    .on('ready', () => {
-      console.log(file_watcher.getWatched())
-    }) 
 
-
-  this.nuxt.hook('listen', async function (server, { port }) {
-  })
-
-  // Disconnect when closing nuxt
-  this.nuxt.hook('close', async function () {
-    return file_watcher.close()
-  })
-
-  function getTilesJson({tileset_id, name, description, attribution, format, minzoom, maxzoom, bounds, version }) {
-    return {   
-      tilejson: '2.2.0',
-      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.{${format}}`],
-      name, version, description, attribution, minzoom, maxzoom, bounds,
-    }
+    fileWatcher.on('add', addDatabase)
+      .on('unlink', removeDatabase)
+      .on('change', (file_path) => {
+        removeDatabase(file_path)
+        addDatabase(file_path)
+      })
+      .on('ready', () => {
+        console.log(fileWatcher.getWatched())
+      })
   }
 
-  function getSourceList() {
-    let sources = {}
-    for (let [tileset_id] of mbtiles) {
-      sources[tileset_id] = {
-        type: 'raster',
-        url: [`tiles/${tileset_id}.json`],
-        tileSize: 256,
-      }
-    }
-    return sources
+  this.stop = async () => {
+    fileWatcher.close()
   }
 
 
   // Tile request handler
-
   // Uses "Connect" https://github.com/senchalabs/connect#appuseroute-fn
-  function tileRequestHandler(req, res, next) {
+  const tileRequestHandler = (req, res, next) => {
+
     const mapbox_url_format = /^\/(?:(?<tileset_id>[\w\.]+)\/)?(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)(?<dpi>@2x)?(?:\.(?<format>[\w\.]+))?/
     let args = req.url.match(mapbox_url_format)
 
@@ -132,11 +113,12 @@ export default function (moduleOptions) {
 
     args = args.groups
 
-    let mbtiles_instance = 0;
+    let mbtiles_instance;
 
     if (args.tileset_id) {
       if (!(mbtiles.has(args.tileset_id))) {
-        res.writeHead(404, { 'Content-Type': "text/plain" });
+        res.writeHead(404, { 'Content-Type': "text/plain",
+        'Access-Control-Allow-Origin' :'*' });
         res.end(`Tileset not found (${args.tileset_id}), valid options are : ${Array.from(mbtiles.keys()).join(", ")}`);
         return true;
       }
@@ -156,15 +138,17 @@ export default function (moduleOptions) {
         mbtiles_instance.getGrid(args.zoom, args.x, args.y,
           (err, grid, headers) => {
             if (err) {
-              res.writeHead(404, { 'Content-Type': "text/plain" })
+              res.writeHead(404, { 'Content-Type': "text/plain",
+              'Access-Control-Allow-Origin' :'*' })
               res.end(`Grid not found (${err})`)
             } else {
+              headers['Access-Control-Allow-Origin'] = '*'
               res.writeHead(200, headers)
               res.write(grid)
               res.end()
             }
           })
-          break;
+        break;
       }
 
       // Handle probable image requests
@@ -184,9 +168,11 @@ export default function (moduleOptions) {
             //console.log(args)
             //console.log(headers)
             if (err) {
-              res.writeHead(404, { 'Content-Type': "text/plain" })
+              res.writeHead(404, { 'Content-Type': "text/plain",
+              'Access-Control-Allow-Origin' :'*' })
               res.end(`Tile not found (${err})`)
             } else {
+              headers['Access-Control-Allow-Origin'] = '*'
               res.writeHead(200, headers)
               res.write(tile)
               res.end()
@@ -198,21 +184,47 @@ export default function (moduleOptions) {
     return true;
   }
 
-  function tileListHandler(req, res, next) {
-    if ( ! req.url.match(/^\/(?:\?.*)?/) ) {
+  // Tile list handler
+  const getSourceList = () => {
+    let sources = {}
+    for (let [tileset_id] of mbtiles) {
+      sources[tileset_id] = {
+        name: mbtiles.get(tileset_id).name,
+        type: 'raster',
+        url: `tiles/${tileset_id}.json`,
+        tileSize: 256,
+      }
+    }
+    return sources
+  }
+
+  const tileListHandler = (req, res, next) => {
+    if (!req.url.match(/^\/(?:\?.*)?/)) {
       next()
       return false
     }
-    let sources = getSourceList()
+    let sources = this.getSourceList()
     let json = JSON.stringify(sources, null, 2)
-    res.writeHead(200, { 'Content-Type': "application/json" })
+    res.writeHead(200, { 'Content-Type': "application/json",
+    'Access-Control-Allow-Origin' :'*' })
     res.write(json)
     res.end()
 
     return true
   }
 
-  function tileJSONHandler(req, res) {
+
+  // Tile JSON handler
+
+  const getTilesJson = ({ tileset_id, name, description, attribution, format, minzoom, maxzoom, bounds, version }) => {
+    return {
+      tilejson: '2.2.0',
+      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.{${format}}`],
+      name, version, description, attribution, minzoom, maxzoom, bounds,
+    }
+  }
+
+  const tileJSONHandler = (req, res) => {
     let args = req.url.match(/^\/(?<tileset_id>[^\/]+?)(?:\.json)?(?:\?.*)?$/)
     if ((args == undefined) || (args.groups == undefined)) {
       return false;
@@ -236,31 +248,27 @@ export default function (moduleOptions) {
 
     let sources = getTilesJson(tileset)
     let json = JSON.stringify(sources, null, 2)
-    res.writeHead(200, { 'Content-Type': "application/json" })
+    res.writeHead(200, { 
+      'Content-Type': "application/json",
+      'Access-Control-Allow-Origin' :'*'
+    })
     res.write(json)
     res.end()
 
     return true
   }
 
-  this.addServerMiddleware(
-    {
-      path: '/tiles',
-      handler: (req, res) => {
-        if(!(    tileRequestHandler(req, res)
-              || tileJSONHandler(req, res)
-              || tileListHandler(req, res)
-        )){
-                res.writeHead(400, { 'Content-Type': "text/plain" });
-                res.end('ERROR ! Malformed request :' + req.url)
-                return;
-        }
-      },
-      prefix: false
-    },
-  )
+  this.getSourceList = getSourceList
 
+  this.handler = (req, res, next) => {
+    if (!(tileRequestHandler(req, res)
+      || tileJSONHandler(req, res)
+      || tileListHandler(req, res)
+    )) {
+      res.writeHead(400, { 'Content-Type': "text/plain",
+      'Access-Control-Allow-Origin' :'*' });
+      res.end('ERROR ! Malformed request :' + req.url)
+      return;
+    }
+  }
 }
-
-  // REQUIRED if publishing the module as npm package
-  //module.exports.meta = require('./package.json')

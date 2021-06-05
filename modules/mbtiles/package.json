@@ -1,0 +1,8 @@
+{
+    "name": "nuxt-mbtiles",
+    "version": "0.0.1",
+    "description": "MB Tile server for Nuxt",
+    "private": false,
+    "main": "module.js",
+    "license": "CC-BY-NC-SA-4.0"
+  }
