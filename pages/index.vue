@@ -8,6 +8,11 @@
         zoom: 1,
         logoPosition: 'bottom-right',
         logoEnabled: false,
+        pitchWithRotate: false,
+        touchPitch: false,
+      }"
+      :nav-control="{
+        show: false,
       }"
       :geolocate-control="{
         show: true,
@@ -26,7 +31,9 @@
       }"
       @map-load="loaded"
     />
-    <Layers :layers="layers" :toggleLayer="toggleLayer" />
+    <ZoomControl :map="map" />
+    <Layers :layers="layers" :toggle-layer="toggleLayer" />
+    <Position :map="map" />
   </div>
 </template>
 
@@ -72,6 +79,11 @@ export default {
         sources,
         layers: layersMapbox,
       },
+    }
+  },
+  data: () => {
+    return {
+      map: {},
     }
   },
   mounted: () => {
@@ -126,7 +138,6 @@ export default {
       }
       this.map.setLayoutProperty(layerId, 'visibility', visibility)
       for (const layer of this.layers) {
-        console.log(layer.id)
         if (layer.id !== layerId) continue
         layer.visibility = visibility
       }
