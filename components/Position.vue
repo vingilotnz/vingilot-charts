@@ -45,12 +45,15 @@
         bottom-0
         flex
         w-max
-        flex-row
+        flex-col
+        md:flex-row
         rounded-md
         shadow-lg
         bg-yellow-100
         ring-1 ring-black ring-opacity-5
-        divide-x divide-gray-600
+        divide-y divide-x-0
+        md:divide-y-0 md:divide-x
+        divide-gray-600
         focus:outline-none
       "
       role="menu"
@@ -89,7 +92,7 @@
         </button>
         <div class="my-auto pr-2">{{ latLongToString(cursorPosition) }}</div>
         <div v-if="dtw || btw" class="my-auto pr-2">|</div>
-        <div v-if="dtw" class="my-auto pr-2 hidden">
+        <div v-if="dtw" class="my-auto pr-2">
           {{ toDisplayDistance(dtw) }}
         </div>
         <div v-if="btw" class="my-auto pr-2">{{ toDisplayHeading(btw) }}</div>
@@ -156,15 +159,18 @@ function LocationManager() {
   }
 }
 
-function getDistance(lngLat1, lngLat2) {
-  const φ1 = lngLat1.lat
-  const λ1 = lngLat1.lng
-  const φ2 = lngLat2.lat
-  const λ2 = lngLat2.lng
+// Position functions from : https://www.movable-type.co.uk/scripts/latlong.html
+
+function getDistanceRL(lngLat1, lngLat2) {
+  const φ1 = (lngLat1.lat * Math.PI) / 180
+  const λ1 = (lngLat1.lng * Math.PI) / 180
+  const φ2 = (lngLat2.lat * Math.PI) / 180
+  const λ2 = (lngLat2.lng * Math.PI) / 180
   const R = 6371e3 // metres
 
   let Δλ = λ2 - λ1
   const Δφ = φ2 - φ1
+
   const Δψ = Math.log(
     Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
   )
@@ -174,16 +180,39 @@ function getDistance(lngLat1, lngLat2) {
   if (Math.abs(Δλ) > Math.PI)
     Δλ = Δλ > 0 ? -(2 * Math.PI - Δλ) : 2 * Math.PI + Δλ
 
-  return Math.sqrt(Δφ * Δφ + q * q * Δλ * Δλ) * R
+  const dist = Math.sqrt(Δφ * Δφ + q * q * Δλ * Δλ) * R
+
+  return dist // in metres
 }
 
-function getBearing(lngLat1, lngLat2) {
-  const φ1 = lngLat1.lat
-  const λ1 = lngLat1.lng
-  const φ2 = lngLat2.lat
-  const λ2 = lngLat2.lng
+/*
+  function getDistanceGC(lngLat1, lngLat2) {
+    const φ1 = (lngLat1.lat * Math.PI) / 180
+    const λ1 = (lngLat1.lng * Math.PI) / 180
+    const φ2 = (lngLat2.lat * Math.PI) / 180
+    const λ2 = (lngLat2.lng * Math.PI) / 180
+    const R = 6371e3 // metres
+
+    const Δλ = λ2 - λ1
+    const Δφ = φ2 - φ1
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+    return R * c // in metres
+  }
+*/
+
+function getBearingRL(lngLat1, lngLat2) {
+  const φ1 = (lngLat1.lat * Math.PI) / 180
+  const λ1 = (lngLat1.lng * Math.PI) / 180
+  const φ2 = (lngLat2.lat * Math.PI) / 180
+  const λ2 = (lngLat2.lng * Math.PI) / 180
 
   let Δλ = λ2 - λ1
+
   const Δψ = Math.log(
     Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
   )
@@ -192,7 +221,15 @@ function getBearing(lngLat1, lngLat2) {
   if (Math.abs(Δλ) > Math.PI)
     Δλ = Δλ > 0 ? -(2 * Math.PI - Δλ) : 2 * Math.PI + Δλ
 
-  return (Math.atan2(Δλ, Δψ) * 180) / Math.PI
+  const brng = (Math.atan2(Δλ, Δψ) * 180) / Math.PI
+
+  return brng
+}
+
+function normalizeDegrees(angle) {
+  while (angle <= -180) angle += 360
+  while (angle > 180) angle -= 360
+  return angle
 }
 
 const boatIcon = (map, geo) => {
@@ -263,15 +300,11 @@ export default {
     }
   },
   methods: {
-    normalizeAngle(angle) {
-      while (angle <= -180) angle += 360
-      while (angle > 180) angle -= 360
-      return angle
-    },
     getDegrees(decDegrees) {
-      decDegrees = this.normalizeAngle(decDegrees)
-      const degrees = Math.floor(decDegrees)
-      const decMinutes = (decDegrees - degrees) * 60
+      decDegrees = normalizeDegrees(decDegrees)
+      const degrees =
+        Math.floor(Math.abs(decDegrees)) * (decDegrees < 0 ? -1 : 1)
+      const decMinutes = (Math.abs(decDegrees) - Math.abs(degrees)) * 60
       const minutes = decMinutes % 60
       const seconds = (decMinutes - minutes) * 60
       return { decDegrees, degrees, decMinutes, minutes, seconds }
@@ -287,8 +320,9 @@ export default {
     },
     toDisplayDistance(s) {
       if (isNaN(s)) return `? Nm`
-      s = (s / 1.852 / 1000 / 45).toFixed(2)
-      return `${s} Nm`
+      const n = (s / 1.852 / 1000).toFixed(2)
+      const m = (s / 1000).toFixed(s > 2000 ? 1 : s > 1000 ? 2 : 3)
+      return `${n} Nm (${m} Km)`
     },
     toDisplayHeading(h) {
       if (isNaN(h)) return `? T`
@@ -325,8 +359,8 @@ export default {
     updateBearing(location, cursor) {
       if (this.cursorPosition) {
         // const offset = !isNaN(this.cog) ? this.cog : 0
-        this.dtw = getDistance(location, cursor)
-        this.btw = getBearing(location, cursor)
+        this.dtw = getDistanceRL(location, cursor)
+        this.btw = getBearingRL(location, cursor)
       }
     },
     updateLocation({ position, lngLat }) {
@@ -372,6 +406,8 @@ export default {
     map: {
       handler(map, oldValue) {
         map.on('click', ({ lngLat }) => {
+          lngLat.lng = normalizeDegrees(lngLat.lng)
+          lngLat.lat = normalizeDegrees(lngLat.lat)
           this.cursorPosition = lngLat
           if (this.location) {
             this.updateBearing(this.location, lngLat)
