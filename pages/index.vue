@@ -15,19 +15,7 @@
         show: false,
       }"
       :geolocate-control="{
-        show: true,
-        position: 'top-right',
-        options: {
-          positionOptions: {
-            enableHighAccuracy: true,
-            timeout: 3000,
-            maximumAge: 500,
-          },
-          trackUserLocation: true,
-          fitBoundsOptions: {
-            maxZoom: 15,
-          },
-        },
+        show: false,
       }"
       @map-load="loaded"
     />
