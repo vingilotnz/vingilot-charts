@@ -166,4 +166,8 @@ export default {
 #map {
   @apply h-full w-full mx-0 absolute;
 }
+
+.mapboxgl-ctrl-bottom-left {
+  bottom: 50px !important;
+}
 </style>
