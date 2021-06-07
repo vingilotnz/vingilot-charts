@@ -19,6 +19,15 @@
           d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
         />
       </symbol>
+      <symbol id="icon_boat_error" viewBox="0 0 24 24" fill="none">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          fill="red"
+          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+        />
+      </symbol>
       <symbol id="icon_cursor" viewBox="0 0 24 24" fill="none">
         <path
           stroke-linecap="round"
@@ -56,13 +65,19 @@
             class="m-auto h-5 w-5"
             stroke="currentColor"
           >
-            <use v-if="lockOnBoat" xlink:href="#icon_boat_solid" />
+            <use v-if="locationError" xlink:href="#icon_boat_error" />
+            <use v-else-if="lockOnBoat" xlink:href="#icon_boat_solid" />
             <use v-else xlink:href="#icon_boat" />
           </svg>
         </button>
-        <div class="my-auto">{{ latLongToString(location) }}</div>
+        <div v-if="location" class="my-auto pr-2">
+          {{ latLongToString(location) }}
+        </div>
+        <div v-if="sog || cog" class="my-auto pr-2">|</div>
+        <div v-if="sog" class="my-auto pr-2">{{ toDisplaySpeed(sog) }}</div>
+        <div v-if="cog" class="my-auto pr-2">{{ toDisplayHeading(cog) }}</div>
       </div>
-      <div class="flex flex-row p-2">
+      <div v-if="cursorPosition" class="flex flex-row p-2">
         <button class="pr-2" role="none">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -72,7 +87,12 @@
             <use xlink:href="#icon_cursor" />
           </svg>
         </button>
-        <div class="my-auto">{{ latLongToString(cursorPosition) }}</div>
+        <div class="my-auto pr-2">{{ latLongToString(cursorPosition) }}</div>
+        <div v-if="dtw || btw" class="my-auto pr-2">|</div>
+        <div v-if="dtw" class="my-auto pr-2 hidden">
+          {{ toDisplayDistance(dtw) }}
+        </div>
+        <div v-if="btw" class="my-auto pr-2">{{ toDisplayHeading(btw) }}</div>
       </div>
     </div>
   </div>
@@ -136,6 +156,45 @@ function LocationManager() {
   }
 }
 
+function getDistance(lngLat1, lngLat2) {
+  const φ1 = lngLat1.lat
+  const λ1 = lngLat1.lng
+  const φ2 = lngLat2.lat
+  const λ2 = lngLat2.lng
+  const R = 6371e3 // metres
+
+  let Δλ = λ2 - λ1
+  const Δφ = φ2 - φ1
+  const Δψ = Math.log(
+    Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
+  )
+  const q = Math.abs(Δψ) > 10e-12 ? Δφ / Δψ : Math.cos(φ1) // E-W course becomes ill-conditioned with 0/0
+
+  // if dLon over 180° take shorter rhumb line across the anti-meridian:
+  if (Math.abs(Δλ) > Math.PI)
+    Δλ = Δλ > 0 ? -(2 * Math.PI - Δλ) : 2 * Math.PI + Δλ
+
+  return Math.sqrt(Δφ * Δφ + q * q * Δλ * Δλ) * R
+}
+
+function getBearing(lngLat1, lngLat2) {
+  const φ1 = lngLat1.lat
+  const λ1 = lngLat1.lng
+  const φ2 = lngLat2.lat
+  const λ2 = lngLat2.lng
+
+  let Δλ = λ2 - λ1
+  const Δψ = Math.log(
+    Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
+  )
+
+  // if dLon over 180° take shorter rhumb line across the anti-meridian:
+  if (Math.abs(Δλ) > Math.PI)
+    Δλ = Δλ > 0 ? -(2 * Math.PI - Δλ) : 2 * Math.PI + Δλ
+
+  return (Math.atan2(Δλ, Δψ) * 180) / Math.PI
+}
+
 const boatIcon = (map, geo) => {
   const size = 24
   return {
@@ -193,10 +252,14 @@ export default {
   data() {
     return {
       show: false,
-      bearing: 0,
-      location: 0,
+      cog: NaN,
+      sog: NaN,
+      location: false,
+      locationError: true,
       cursorPosition: 0,
       lockOnBoat: false,
+      dtw: 0,
+      btw: 0,
     }
   },
   methods: {
@@ -216,6 +279,24 @@ export default {
     toDisplayDegrees(d) {
       d = this.getDegrees(d)
       return `${d.degrees.toFixed(0)}° ${d.decMinutes.toFixed(3)}'`
+    },
+    toDisplaySpeed(s) {
+      if (isNaN(s)) return `? Kts`
+      s = (s * 1.94384).toFixed(2)
+      return `${s} Kts`
+    },
+    toDisplayDistance(s) {
+      if (isNaN(s)) return `? Nm`
+      s = (s / 1.852 / 1000 / 45).toFixed(2)
+      return `${s} Nm`
+    },
+    toDisplayHeading(h) {
+      if (isNaN(h)) return `? T`
+      if (h < 0) {
+        h = h + 360
+      }
+      h = h.toFixed(2)
+      return `${h}° T`
     },
     latLongToString(pos) {
       if (!pos || !pos.lng || !pos.lat) {
@@ -241,6 +322,48 @@ export default {
         this.goToBoat()
       }
     },
+    updateBearing(location, cursor) {
+      if (this.cursorPosition) {
+        // const offset = !isNaN(this.cog) ? this.cog : 0
+        this.dtw = getDistance(location, cursor)
+        this.btw = getBearing(location, cursor)
+      }
+    },
+    updateLocation({ position, lngLat }) {
+      this.location = lngLat
+      this.locationError = false
+      this.cog = position.heading
+      this.sog = position.speed
+
+      if (this.cursorPosition) {
+        this.updateBearing(lngLat, this.cursorPosition)
+      }
+
+      this.map.getSource('boatIcon').setData({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Point',
+          coordinates: [lngLat.lng, lngLat.lat], // icon position [lng, lat]
+        },
+      })
+      if (this.lockOnBoat) {
+        this.map.flyTo({
+          center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
+        })
+      }
+    },
+    locationErrorHandler({ code, message }) {
+      console.log(message)
+      switch (code) {
+        case 0:
+        case 1:
+          this.locationError = true
+          break
+        default:
+          break
+      }
+    },
   },
   mounted() {
     this.geo = new LocationManager()
@@ -250,6 +373,9 @@ export default {
       handler(map, oldValue) {
         map.on('click', ({ lngLat }) => {
           this.cursorPosition = lngLat
+          if (this.location) {
+            this.updateBearing(this.location, lngLat)
+          }
         })
 
         map.on('dragstart', () => {
@@ -277,24 +403,7 @@ export default {
           },
         })
 
-        // let onFirst = true
-
-        this.geo.start(({ lngLat }) => {
-          this.location = lngLat
-          this.map.getSource('boatIcon').setData({
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'Point',
-              coordinates: [lngLat.lng, lngLat.lat], // icon position [lng, lat]
-            },
-          })
-          if (this.lockOnBoat) {
-            this.map.flyTo({
-              center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
-            })
-          }
-        })
+        this.geo.start(this.updateLocation, this.locationErrorHandler)
       },
     },
   },
