@@ -28,7 +28,7 @@
       </symbol>
     </svg>
 
-    <div>
+    <div class="w-min relative">
       <button
         type="button"
         class="
@@ -51,10 +51,9 @@
           focus:ring-offset-gray-100
           focus:ring-indigo-500
         "
-        id="layers-menu-button"
         aria-expanded="true"
         aria-haspopup="true"
-        v-on:click="show = !show"
+        @click="show = !show"
       >
         <svg class="mr-2 -ml-1 h-5 w-5" stroke="currentColor">
           <use xlink:href="#icon_menu" visible />
@@ -64,11 +63,12 @@
     </div>
 
     <div
+      v-show="show"
       class="
         menu-drop-down
         is-shown
         origin-top-left
-        absolute
+        relative
         left-0
         mt-2
         w-max
@@ -83,15 +83,15 @@
       aria-orientation="vertical"
       aria-labelledby="menu-button"
       tabindex="-1"
-      v-show="show"
     >
       <ul class="pl-2 pr-2 py-1" role="none">
         <li
-          class="flex px-4 py-2 text-sm justify hover:font-bold"
-          role="menuitem"
           v-for="layer in layers"
           :key="layer.name"
+          class="flex px-4 py-2 text-sm justify hover:font-bold"
+          role="menuitem"
           @click="toggleLayer(layer.id)"
+          draggable
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -99,10 +99,10 @@
             stroke="currentColor"
           >
             <use
-              xlink:href="#icon_check"
               v-if="layer.visibility == 'visible'"
+              xlink:href="#icon_check"
             />
-            <use xlink:href="#icon_cross" v-else />
+            <use v-else xlink:href="#icon_cross" />
           </svg>
           {{ layer.name }}
         </li>
