@@ -26,6 +26,7 @@
       }"
       @map-load="loaded"
     />
+    <Layers :layers="layers" :toggleLayer="toggleLayer" />
   </div>
 </template>
 
@@ -35,24 +36,41 @@ import Mapbox from 'mapbox-gl-vue'
 
 export default {
   components: { Mapbox },
-  asyncData: async ({ $http }) => {
-    const sources = await $http.$get('/tiles')
+  asyncData: async ({ $http, req }) => {
+    const host = process.server ? req.headers.host : window.location.host
+    const sources = await $http.$get('https://' + host + '/tiles')
 
-    const layers = []
+    const layersMapbox = []
+    const layersMenu = []
+    let first = true
     for (const tilesetId in sources) {
       const tileset = sources[tilesetId]
-      layers.push({
+      layersMapbox.push({
         id: tileset.name,
         type: tileset.type,
         source: tilesetId,
+        layout: {
+          visibility: first ? 'visible' : 'none',
+        },
       })
+      layersMenu.push({
+        id: tileset.name,
+        name: tileset.name,
+        description: tileset.description,
+        type: tileset.type,
+        source: tilesetId,
+        visibility: first ? 'visible' : 'none',
+      })
+      first = false
     }
 
     return {
+      sources,
+      layers: layersMenu,
       style: {
         version: 8,
         sources,
-        layers,
+        layers: layersMapbox,
       },
     }
   },
@@ -83,6 +101,7 @@ export default {
   },
   methods: {
     loaded(map) {
+      this.map = map
       map.addControl(
         new mapboxgl.ScaleControl({
           maxWidth: 200,
@@ -97,6 +116,21 @@ export default {
         }),
         'bottom-left'
       )
+    },
+    toggleLayer(layerId) {
+      let visibility = this.map.getLayoutProperty(layerId, 'visibility')
+      if (visibility === 'visible') {
+        visibility = 'none'
+      } else {
+        visibility = 'visible'
+      }
+      this.map.setLayoutProperty(layerId, 'visibility', visibility)
+      for (const layer of this.layers) {
+        console.log(layer.id)
+        if (layer.id !== layerId) continue
+        layer.visibility = visibility
+      }
+      return visibility
     },
   },
 }
@@ -131,6 +165,6 @@ export default {
 }
 
 #map {
-  @apply h-full w-full mx-0;
+  @apply h-full w-full mx-0 absolute;
 }
 </style>

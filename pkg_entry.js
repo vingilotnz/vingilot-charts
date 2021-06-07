@@ -6,7 +6,7 @@ let config = require('./nuxt.config.js')
 
 async function start () {
     const nuxt = await loadNuxt('start')
-    await nuxt.listen(3000, "localhost")
+    await nuxt.listen(3000, 0)
 }
 
 start()
