@@ -183,6 +183,33 @@ function LocationManager() {
   }
 }
 
+function constructCogGeoJSON(lngLat, destLngLat) {
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          id: 'boat_cog_line',
+          type: 'LineString',
+          coordinates: [
+            [lngLat.lng, lngLat.lat],
+            [destLngLat.lng, destLngLat.lat],
+          ],
+        },
+      },
+      {
+        id: 'boat_cog_dest',
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [destLngLat.lng, destLngLat.lat],
+        },
+      },
+    ],
+  }
+}
+
 // Position functions from : https://www.movable-type.co.uk/scripts/latlong.html
 
 function getDistanceRL(lngLat1, lngLat2) {
@@ -250,6 +277,33 @@ function getBearingRL(lngLat1, lngLat2) {
   return brng
 }
 
+function destinationRL(startLngLat, cog, sog) {
+  const λ1 = (startLngLat.lng * Math.PI) / 180
+  const φ1 = (startLngLat.lat * Math.PI) / 180
+  const θ = (cog * Math.PI) / 180
+  const d = sog * 60 * 60 // meters per hour
+  const R = 6371e3 // metres
+  const δ = d / R
+  const Δφ = δ * Math.cos(θ)
+  let φ2 = φ1 + Δφ
+
+  const Δψ = Math.log(
+    Math.tan(φ2 / 2 + Math.PI / 4) / Math.tan(φ1 / 2 + Math.PI / 4)
+  )
+  const q = Math.abs(Δψ) > 10e-12 ? Δφ / Δψ : Math.cos(φ1) // E-W course becomes ill-conditioned with 0/0
+
+  const Δλ = (δ * Math.sin(θ)) / q
+  const λ2 = λ1 + Δλ
+
+  // check for some daft bugger going past the pole, normalise latitude if so
+  if (Math.abs(φ2) > Math.PI / 2) φ2 = φ2 > 0 ? Math.PI - φ2 : -Math.PI - φ2
+
+  return {
+    lng: (λ2 * 180) / Math.PI,
+    lat: (φ2 * 180) / Math.PI,
+  }
+}
+
 function normalizeDegrees(angle) {
   while (angle <= -180) angle += 360
   while (angle > 180) angle -= 360
@@ -274,9 +328,7 @@ const boatIcon = (map, geo) => {
 
     // Call once before every frame where the icon will be used.
     render() {
-      const boatPath = new Path2D(
-        'M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z'
-      )
+      const boatPath = new Path2D('M12 19l9 2-9-18-9 18 9-2zm0 0v-8')
       const context = this.context
 
       // Draw the outer circle.
@@ -291,8 +343,9 @@ const boatIcon = (map, geo) => {
       context.fillStyle = 'rgba(255, 100, 100, 1)'
       context.fill(boatPath)
       context.stroke(boatPath)
-
-      context.setTransform(1, 0, 0, 1, 0, 0)
+      context.translate(this.width / 2, this.height / 2)
+      context.rotate(-geo.position.coords.heading * (Math.PI / 180))
+      context.translate(-this.width / 2, -this.height / 2)
 
       // Update this image's data with data from the canvas.
       this.data = context.getImageData(0, 0, this.width, this.height).data
@@ -392,10 +445,12 @@ export default {
       }
     },
     updateLocation({ position, lngLat, calculated }) {
+      const cog = position.coords.heading
+      const sog = position.coords.sog
       this.location = lngLat
       this.locationError = false
-      this.cog = position.coords.heading // || calculated.heading
-      this.sog = position.coords.speed // || calculated.speed
+      this.cog = cog // || calculated.heading
+      this.sog = sog // || calculated.speed
       // console.log(position)
       // console.log(calculated)
 
@@ -411,6 +466,11 @@ export default {
           coordinates: [lngLat.lng, lngLat.lat], // icon position [lng, lat]
         },
       })
+
+      const dstLngLat = cog && sog ? destinationRL(lngLat, cog, sog) : lngLat
+      this.map
+        .getSource('boat_cog')
+        .setData(constructCogGeoJSON(lngLat, dstLngLat))
       if (this.lockOnBoat) {
         this.map.flyTo({
           center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
@@ -418,7 +478,6 @@ export default {
       }
     },
     locationErrorHandler({ code, message }) {
-      console.log(message)
       switch (code) {
         case 0:
         case 1:
@@ -449,6 +508,7 @@ export default {
           this.lockOnBoat = false
         })
 
+        // Add Boat Source
         map.addImage('boatIcon', boatIcon(map, this.geo), { pixelRatio: 1 })
         map.addSource('boatIcon', {
           type: 'geojson',
@@ -467,8 +527,49 @@ export default {
           source: 'boatIcon',
           layout: {
             'icon-image': 'boatIcon',
+            'icon-rotation-alignment': 'map',
           },
         })
+
+        // Add COG Source
+        map.addSource('boat_cog', {
+          type: 'geojson',
+          data: constructCogGeoJSON({ lng: 0, lat: 0 }, 0, 0),
+        })
+        map.addLayer(
+          {
+            id: 'boat_cog_line',
+            type: 'line',
+            source: 'boat_cog',
+            layout: {
+              'line-cap': 'round',
+              'line-join': 'round',
+              // visibility: 'none',
+            },
+            paint: {
+              'line-color': 'red',
+              'line-width': 2,
+            },
+            filter: ['in', '$type', 'LineString'],
+          },
+          'boatIcon'
+        )
+        map.addLayer(
+          {
+            id: 'boat_cog_dest',
+            type: 'circle',
+            source: 'boat_cog',
+            // layout: {
+            //   visibility: 'none',
+            // },
+            paint: {
+              'circle-radius': 5,
+              'circle-color': 'red',
+            },
+            filter: ['in', '$type', 'Point'],
+          },
+          'boatIcon'
+        )
 
         this.geo.start(this.updateLocation, this.locationErrorHandler)
       },

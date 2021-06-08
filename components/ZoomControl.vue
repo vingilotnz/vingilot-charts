@@ -157,7 +157,6 @@ export default {
     }
   },
   mounted() {
-    console.log(this.main)
     if (document.fullscreenEnabled) {
       this.canFullscreen = true
       const e = document.getElementById(this.main)
