@@ -41,7 +41,7 @@ export default {
     for (const tilesetId in sources) {
       const tileset = sources[tilesetId]
       layersMapbox.push({
-        id: tileset.name,
+        id: tilesetId,
         type: tileset.type,
         source: tilesetId,
         layout: {
@@ -49,7 +49,7 @@ export default {
         },
       })
       layersMenu.push({
-        id: tileset.name,
+        id: tilesetId,
         name: tileset.name,
         description: tileset.description,
         type: tileset.type,
