@@ -26,11 +26,27 @@
           d="M8 7l4-4m0 0l4 4m-4-4v18"
         />
       </symbol>
+      <symbol id="icon_fullscreen" viewBox="0 0 24 24" fill="none">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+        />
+      </symbol>
+      <symbol id="icon_fullscreen_exit" viewBox="0 0 24 24" fill="none">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M4 4 L9 9 M5 9 H9 V5 M20 4 L15 9 M19 9 H15 V5 M20 20 L15 15 M19 15 H15 V19 M4 20 L9 15 M5 15 H9 V19"
+        />
+      </symbol>
     </svg>
 
     <div
       class="
-        absolute
+        relative
         right-0
         w-max
         rounded-md
@@ -84,6 +100,39 @@
         </button>
       </div>
     </div>
+
+    <div
+      v-if="canFullscreen"
+      class="
+        relative
+        mt-4
+        right-0
+        w-max
+        rounded-md
+        shadow-lg
+        bg-white
+        ring-1 ring-black ring-opacity-5
+        divide-y divide-gray-100
+        focus:outline-none
+      "
+      role="menu"
+      aria-orientation="vertical"
+      aria-labelledby="menu-button"
+      tabindex="-1"
+    >
+      <div>
+        <button class="p-2" role="none" @click="toggleFullscreen()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="m-auto h-5 w-5"
+            stroke="currentColor"
+          >
+            <use v-if="!isFullscreen" xlink:href="#icon_fullscreen" />
+            <use v-else xlink:href="#icon_fullscreen_exit" />
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -94,12 +143,41 @@ export default {
       type: Object,
       default: () => {},
     },
+    main: {
+      type: String,
+      default: () => 'main',
+    },
   },
   data() {
     return {
       show: false,
       bearing: 0,
+      isFullscreen: false,
+      canFullscreen: false,
     }
+  },
+  mounted() {
+    console.log(this.main)
+    if (document.fullscreenEnabled) {
+      this.canFullscreen = true
+      const e = document.getElementById(this.main)
+      e.onfullscreenchange = (event) => {
+        const elem = event.target
+        this.isFullscreen = document.fullscreenElement === elem
+      }
+    }
+  },
+  methods: {
+    toggleFullscreen() {
+      const main = document.getElementById(this.main)
+      if (this.isFullscreen) {
+        document.exitFullscreen()
+      } else {
+        main.requestFullscreen({
+          navigationUI: 'hide',
+        })
+      }
+    },
   },
   watch: {
     map: {

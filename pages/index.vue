@@ -1,5 +1,5 @@
 <template>
-  <div class="main">
+  <div id="main" class="main">
     <Mapbox
       access-token="pk.eyJ1IjoidmluZ2lsb3RueiIsImEiOiJja3Bhcnk0NXMwczdtMndta2JwbjQ1dG4zIn0.Gr6pVbDcfTpe8TsPVpbl8Q"
       :map-options="{
@@ -19,7 +19,7 @@
       }"
       @map-load="loaded"
     />
-    <ZoomControl :map="map" />
+    <ZoomControl :map="map" :main="'main'" />
     <Layers :layers="layers" :toggle-layer="toggleLayer" />
     <Position :map="map" />
   </div>
