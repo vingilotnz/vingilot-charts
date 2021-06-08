@@ -120,24 +120,48 @@ function LocationManager() {
     }
     navigator.geolocation.watchPosition(
       (position) => {
-        this.ready = true
-        this.stale = false
-        const lastPos = this.position
-        this.position = position
+        this.lastUpdate = this.time
+        this.time = Date.now()
+        const lastPos = this.position || {}
+
         const lngLat = {
           lng: position.coords.longitude,
           lat: position.coords.latitude,
         }
+        if (this.ready && !this.stale) {
+          const lastLngLat = {
+            lng: lastPos.coords.longitude,
+            lat: lastPos.coords.latitude,
+          }
+          const deltaD = getDistanceRL(lastLngLat, lngLat)
+          const deltaT = (this.time - this.lastUpdate) / 1000
+          const speed = deltaD / deltaT
+          const heading = getBearingRL(lastLngLat, lngLat)
+          this.calculated = {
+            speed,
+            heading,
+          }
+        } else {
+          this.calculated = {
+            speed: NaN,
+            heading: NaN,
+          }
+        }
+        this.position = position
+
         this.lngLat = lngLat
-        const lastUpdate = this.lastUpdate
-        this.lastUpdate = Date.UTC()
+
+        this.ready = true
+        this.stale = false
+
         if (update) {
           update({
             position,
             lngLat,
-            time: this.lastUpdate,
-            lastUpdate,
+            time: this.time,
+            lastUpdate: this.lastUpdate,
             lastPos,
+            calculated: this.calculated,
           })
         }
       },
@@ -258,7 +282,9 @@ const boatIcon = (map, geo) => {
       // Draw the outer circle.
       context.clearRect(0, 0, this.width, this.height)
       if (geo.ready) {
-        context.rotate(geo.position.heading * (Math.PI / 180))
+        context.translate(this.width / 2, this.height / 2)
+        context.rotate(geo.position.coords.heading * (Math.PI / 180))
+        context.translate(-this.width / 2, -this.height / 2)
       }
       context.strokeStyle = 'red'
       context.lineWidth = 1
@@ -266,12 +292,14 @@ const boatIcon = (map, geo) => {
       context.fill(boatPath)
       context.stroke(boatPath)
 
+      context.setTransform(1, 0, 0, 1, 0, 0)
+
       // Update this image's data with data from the canvas.
       this.data = context.getImageData(0, 0, this.width, this.height).data
 
       // Continuously repaint the map, resulting
       // in the smooth animation of the dot.
-      map.triggerRepaint()
+      // map.triggerRepaint()
 
       // Return `true` to let the map know that the image was updated.
       return true
@@ -363,11 +391,13 @@ export default {
         this.btw = getBearingRL(location, cursor)
       }
     },
-    updateLocation({ position, lngLat }) {
+    updateLocation({ position, lngLat, calculated }) {
       this.location = lngLat
       this.locationError = false
-      this.cog = position.heading
-      this.sog = position.speed
+      this.cog = position.coords.heading // || calculated.heading
+      this.sog = position.coords.speed // || calculated.speed
+      // console.log(position)
+      // console.log(calculated)
 
       if (this.cursorPosition) {
         this.updateBearing(lngLat, this.cursorPosition)
@@ -395,6 +425,7 @@ export default {
           this.locationError = true
           break
         default:
+          this.geo.start(this.updateLocation, this.locationErrorHandler)
           break
       }
     },
