@@ -194,7 +194,12 @@ export default function ({charts}) {
         tileSize: 256,
       }
     }
-    return sources
+    const sorted = Object.keys(sources)
+    .sort()
+    .reduce((acc, key) => ({
+      ...acc, [key]: sources[key]
+    }), {})
+    return sorted
   }
 
   const tileListHandler = (req, res, next) => {

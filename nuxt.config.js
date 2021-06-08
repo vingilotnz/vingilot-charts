@@ -16,6 +16,7 @@ module.exports = {
       { charset: 'utf-8' },
       { name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
       { hid: 'description', name: 'description', content: '' },
+      { name: 'apple-mobile-web-app-capable', content:'yes' }
     ],
     link: [
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },

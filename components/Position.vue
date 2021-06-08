@@ -330,12 +330,13 @@ const boatIcon = (map, geo) => {
     render() {
       const boatPath = new Path2D('M12 19l9 2-9-18-9 18 9-2zm0 0v-8')
       const context = this.context
+      const heading = (geo.ready && geo.position.coords.heading) || 0
 
       // Draw the outer circle.
       context.clearRect(0, 0, this.width, this.height)
       if (geo.ready) {
         context.translate(this.width / 2, this.height / 2)
-        context.rotate(geo.position.coords.heading * (Math.PI / 180))
+        context.rotate(heading * (Math.PI / 180))
         context.translate(-this.width / 2, -this.height / 2)
       }
       context.strokeStyle = 'red'
@@ -344,7 +345,7 @@ const boatIcon = (map, geo) => {
       context.fill(boatPath)
       context.stroke(boatPath)
       context.translate(this.width / 2, this.height / 2)
-      context.rotate(-geo.position.coords.heading * (Math.PI / 180))
+      context.rotate(-heading * (Math.PI / 180))
       context.translate(-this.width / 2, -this.height / 2)
 
       // Update this image's data with data from the canvas.
@@ -446,7 +447,7 @@ export default {
     },
     updateLocation({ position, lngLat, calculated }) {
       const cog = position.coords.heading
-      const sog = position.coords.sog
+      const sog = position.coords.speed
       this.location = lngLat
       this.locationError = false
       this.cog = cog // || calculated.heading
@@ -457,6 +458,8 @@ export default {
       if (this.cursorPosition) {
         this.updateBearing(lngLat, this.cursorPosition)
       }
+
+      if (!this.map.getSource('boatIcon')) return
 
       this.map.getSource('boatIcon').setData({
         type: 'Feature',
@@ -472,16 +475,25 @@ export default {
         .getSource('boat_cog')
         .setData(constructCogGeoJSON(lngLat, dstLngLat))
       if (this.lockOnBoat) {
-        this.map.flyTo({
+        this.map.panTo({
           center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
         })
       }
+
+      this.map.setLayoutProperty('boat_cog_line', 'visibility', 'visible')
+      this.map.setLayoutProperty('boat_cog_dest', 'visibility', 'visible')
+      this.map.setLayoutProperty('boatIcon', 'visibility', 'visible')
     },
     locationErrorHandler({ code, message }) {
+      this.locationError = true
       switch (code) {
         case 0:
         case 1:
-          this.locationError = true
+          break
+        case 2:
+          setTimeout(() => {
+            this.geo.start(this.updateLocation, this.locationErrorHandler)
+          }, 10000)
           break
         default:
           this.geo.start(this.updateLocation, this.locationErrorHandler)
@@ -495,6 +507,9 @@ export default {
   watch: {
     map: {
       handler(map, oldValue) {
+        const geo = this.geo
+        geo.start(this.updateLocation, this.locationErrorHandler)
+
         map.on('click', ({ lngLat }) => {
           lngLat.lng = normalizeDegrees(lngLat.lng)
           lngLat.lat = normalizeDegrees(lngLat.lat)
@@ -529,6 +544,7 @@ export default {
             'icon-image': 'boatIcon',
             'icon-allow-overlap': true,
             'icon-rotation-alignment': 'map',
+            visibility: 'none',
           },
         })
 
@@ -537,6 +553,7 @@ export default {
           type: 'geojson',
           data: constructCogGeoJSON({ lng: 0, lat: 0 }, 0, 0),
         })
+
         map.addLayer(
           {
             id: 'boat_cog_line',
@@ -545,7 +562,7 @@ export default {
             layout: {
               'line-cap': 'round',
               'line-join': 'round',
-              // visibility: 'none',
+              visibility: 'none',
             },
             paint: {
               'line-color': 'red',
@@ -560,9 +577,9 @@ export default {
             id: 'boat_cog_dest',
             type: 'circle',
             source: 'boat_cog',
-            // layout: {
-            //   visibility: 'none',
-            // },
+            layout: {
+              visibility: 'none',
+            },
             paint: {
               'circle-radius': 5,
               'circle-color': 'red',
@@ -571,8 +588,6 @@ export default {
           },
           'boatIcon'
         )
-
-        this.geo.start(this.updateLocation, this.locationErrorHandler)
       },
     },
   },

@@ -8,7 +8,8 @@ console.log(boxen(chalk`
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
 
 // Import and Set Nuxt.js options
-const config = require('./nuxt.config.js')
+const config = require('./nuxt.config.js');
+const { cpuUsage } = require('process');
 
 const host = (config.server && config.server.host) || 0
 const port = (config.server && config.server.port) || 3000
@@ -20,8 +21,9 @@ if (args.length) {
 }
 
 
-const nets = networkInterfaces();
-const results = {};
+const nets = networkInterfaces()
+const results = {}
+const addresses = []
 let res_str = ""
 
 for (const name of Object.keys(nets)) {
@@ -33,6 +35,7 @@ for (const name of Object.keys(nets)) {
                 results[name] = [];
             }
             results[name].push(net.address);
+            addresses.push(net.address)
             temp_str += `${net.address}, `
         }
     }
@@ -48,6 +51,10 @@ async function start () {
     if(host) {
         console.log(boxen(chalk`
 {bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on https://${host}:${port}/
+`, {padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722'}))
+    } else if (addresses.length == 1) {
+        console.log(boxen(chalk`
+{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on https://${addresses[0]}:${port}/
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722'}))
     } else {
         console.log(boxen(chalk`

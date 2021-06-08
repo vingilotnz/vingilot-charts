@@ -1,6 +1,6 @@
 {
   "name": "vingilot-charts",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Charting server for vingilot",
   "main": "index.js",
   "repository": "https://github.com/vingilotnz/vingilot-charts.git",
