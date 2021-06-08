@@ -527,6 +527,7 @@ export default {
           source: 'boatIcon',
           layout: {
             'icon-image': 'boatIcon',
+            'icon-allow-overlap': true,
             'icon-rotation-alignment': 'map',
           },
         })

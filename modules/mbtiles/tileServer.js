@@ -1,6 +1,5 @@
 import MBTiles from '@mapbox/mbtiles'
-import chokidar, { watch } from 'chokidar'
-import { cpuUsage } from 'process'
+import chokidar from 'chokidar'
 const { basename } = require('path')
 
 export default function ({charts}) {
@@ -16,7 +15,7 @@ export default function ({charts}) {
     }
     
 
-    console.log(`Detected possible mbtile database ${file_path}`)
+    console.log(`Detected possible mbtile database '${file_path}'`)
     new MBTiles(file_path + "?mode=ro", function (err, instance) {
 
       if (err) {
@@ -51,7 +50,7 @@ export default function ({charts}) {
           return
         }
 
-        console.log(`Loaded ${file_path} (${mbtile['tileset_id']})`)
+        console.log(`Loaded '${file_path}' (${mbtile['name']})`)
 
         mbtiles.set(mbtile['tileset_id'], mbtile)
         //$store[namespace].ADD_TILE(mbtile['tileset_id'], mbtile)
@@ -91,7 +90,7 @@ export default function ({charts}) {
         addDatabase(file_path)
       })
       .on('ready', () => {
-        console.log(fileWatcher.getWatched())
+        //console.log(fileWatcher.getWatched())
       })
   }
 
