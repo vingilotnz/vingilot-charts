@@ -14,12 +14,6 @@ export default function (options) {
   if (options.charts) charts.push(options.charts)
   if (this.options.charts) charts.push(this.options.charts)
 
-  console.log (`${namespace} will search the following directories for mbtiles : `)
-  for ( const [chart] of charts) {
-    console.log(` - '${chart}'`)
-  }
-  console.log(`\n`)
-
   const tileServer = new TileServer({ charts })
 
   // add all of the initial plugins
@@ -39,6 +33,12 @@ export default function (options) {
   }
 
   this.nuxt.hook('listen', async function (server, { port }) {
+    console.log (`${namespace} will search the following directories for mbtiles : `)
+    for ( const [chart] of charts) {
+      console.log(` - '${chart}'`)
+    }
+    console.log(`\n`)
+  
     return tileServer.start()
   })
 

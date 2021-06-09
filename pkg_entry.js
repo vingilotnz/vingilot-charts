@@ -4,12 +4,11 @@ const boxen = require('boxen');
 const { networkInterfaces } = require('os');
 
 console.log(boxen(chalk`
-{bold.hex('#4296f5') charts.vingilot.nz} | {bold.hex('#f59342') version 0.0.2}
+{bold.hex('#4296f5') charts.vingilot.nz} | {bold.hex('#f59342') version 0.0.4}
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
 
 // Import and Set Nuxt.js options
 const config = require('./nuxt.config.js');
-const { cpuUsage } = require('process');
 
 const host = (config.server && config.server.host) || 0
 const port = (config.server && config.server.port) || 3000

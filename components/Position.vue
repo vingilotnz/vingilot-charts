@@ -475,9 +475,7 @@ export default {
         .getSource('boat_cog')
         .setData(constructCogGeoJSON(lngLat, dstLngLat))
       if (this.lockOnBoat) {
-        this.map.panTo({
-          center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
-        })
+        this.map.panTo([lngLat.lng, lngLat.lat])
       }
 
       this.map.setLayoutProperty('boat_cog_line', 'visibility', 'visible')
