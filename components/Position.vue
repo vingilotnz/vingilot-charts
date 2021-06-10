@@ -28,6 +28,15 @@
           d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
         />
       </symbol>
+      <symbol id="icon_boat_stale" viewBox="0 0 24 24" fill="none">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          fill="grey"
+          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+        />
+      </symbol>
       <symbol id="icon_cursor" viewBox="0 0 24 24" fill="none">
         <path
           stroke-linecap="round"
@@ -107,8 +116,16 @@ function LocationManager() {
   this.ready = false
   this.stale = true
   this.lastUpdate = Date.UTC()
+  this.timeout = 6000
+  let geoID = false
+  let timeoutID = false
+  let forceRestart = false
 
   this.start = (update, error) => {
+    if (geoID) {
+      this.stop()
+    }
+
     if (!navigator.geolocation) {
       if (error) {
         error({
@@ -118,7 +135,29 @@ function LocationManager() {
       }
       return
     }
-    navigator.geolocation.watchPosition(
+
+    forceRestart = () => {
+      forceRestart = false
+      this.start(update, error)
+    }
+
+    // Auto restart on mobile devices
+    window.addEventListener('pageshow', forceRestart, { once: true })
+
+    if (timeoutID) {
+      clearTimeout(timeoutID)
+      timeoutID = false
+    }
+
+    // timeoutID = setTimeout(() => {
+    //   this.ready = false
+    //   this.stale = true
+    //   if (error) {
+    //     error({ code: 4, message: 'Geolocation API may have stopped working!' })
+    //   }
+    // }, this.timeout + 2000)
+
+    geoID = navigator.geolocation.watchPosition(
       (position) => {
         this.lastUpdate = this.time
         this.time = Date.now()
@@ -176,10 +215,27 @@ function LocationManager() {
       },
       {
         enableHighAccuracy: true,
-        timeout: 6000,
+        timeout: this.timeout,
         maximumAge: 0,
       }
     )
+  }
+
+  this.stop = () => {
+    if (forceRestart) {
+      window.removeEventListener('pageshow', forceRestart)
+      forceRestart = false
+    }
+    if (geoID) {
+      navigator.geolocation.clearWatch(geoID)
+      geoID = false
+      this.ready = false
+    }
+
+    if (timeoutID) {
+      clearTimeout(timeoutID)
+      timeoutID = false
+    }
   }
 }
 
@@ -277,11 +333,11 @@ function getBearingRL(lngLat1, lngLat2) {
   return brng
 }
 
-function destinationRL(startLngLat, cog, sog) {
+function destinationRL(startLngLat, heading, distance) {
   const λ1 = (startLngLat.lng * Math.PI) / 180
   const φ1 = (startLngLat.lat * Math.PI) / 180
-  const θ = (cog * Math.PI) / 180
-  const d = sog * 60 * 60 // meters per hour
+  const θ = (heading * Math.PI) / 180
+  const d = distance
   const R = 6371e3 // metres
   const δ = d / R
   const Δφ = δ * Math.cos(θ)
@@ -302,6 +358,23 @@ function destinationRL(startLngLat, cog, sog) {
     lng: (λ2 * 180) / Math.PI,
     lat: (φ2 * 180) / Math.PI,
   }
+}
+
+function drawRealCircleGeoJSON(centerLngLat, radius, steps = 100) {
+  const points = []
+  for (let i = 0; i <= steps; ++i) {
+    const angle = (i * 360) / steps
+    const { lng, lat } = destinationRL(centerLngLat, angle, radius)
+    points.push([lng, lat])
+  }
+  const geojson = {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [points],
+    },
+  }
+  return geojson
 }
 
 function normalizeDegrees(angle) {
@@ -341,7 +414,8 @@ const boatIcon = (map, geo) => {
       }
       context.strokeStyle = 'red'
       context.lineWidth = 1
-      context.fillStyle = 'rgba(255, 100, 100, 1)'
+      context.fillStyle =
+        !geo.ready || geo.stale ? 'grey' : 'rgba(255, 100, 100, 1)'
       context.fill(boatPath)
       context.stroke(boatPath)
       context.translate(this.width / 2, this.height / 2)
@@ -448,6 +522,7 @@ export default {
     updateLocation({ position, lngLat, calculated }) {
       const cog = position.coords.heading
       const sog = position.coords.speed
+      const accuracy = position.coords.accuracy || 0
       this.location = lngLat
       this.locationError = false
       this.cog = cog // || calculated.heading
@@ -469,8 +544,8 @@ export default {
           coordinates: [lngLat.lng, lngLat.lat], // icon position [lng, lat]
         },
       })
-
-      const dstLngLat = cog && sog ? destinationRL(lngLat, cog, sog) : lngLat
+      const dst = sog * 60 * 60 // meters per hour
+      const dstLngLat = cog && sog ? destinationRL(lngLat, cog, dst) : lngLat
       this.map
         .getSource('boat_cog')
         .setData(constructCogGeoJSON(lngLat, dstLngLat))
@@ -478,25 +553,19 @@ export default {
         this.map.panTo([lngLat.lng, lngLat.lat])
       }
 
+      this.map
+        .getSource('boat_accuracy')
+        .setData(drawRealCircleGeoJSON(lngLat, accuracy))
+
       this.map.setLayoutProperty('boat_cog_line', 'visibility', 'visible')
       this.map.setLayoutProperty('boat_cog_dest', 'visibility', 'visible')
       this.map.setLayoutProperty('boatIcon', 'visibility', 'visible')
     },
     locationErrorHandler({ code, message }) {
       this.locationError = true
-      switch (code) {
-        case 0:
-        case 1:
-          break
-        case 2:
-          setTimeout(() => {
-            this.geo.start(this.updateLocation, this.locationErrorHandler)
-          }, 10000)
-          break
-        default:
-          this.geo.start(this.updateLocation, this.locationErrorHandler)
-          break
-      }
+      setTimeout(() => {
+        this.geo.start(this.updateLocation, this.locationErrorHandler)
+      }, 1000)
     },
   },
   mounted() {
@@ -583,6 +652,43 @@ export default {
               'circle-color': 'red',
             },
             filter: ['in', '$type', 'Point'],
+          },
+          'boatIcon'
+        )
+
+        // Add Accuracy Circle
+        map.addSource('boat_accuracy', {
+          type: 'geojson',
+          data: drawRealCircleGeoJSON({ lng: 0, lat: 0 }, 0),
+        })
+        map.addLayer(
+          {
+            id: 'boat_accuracy_fill',
+            type: 'fill',
+            source: 'boat_accuracy',
+            layout: {
+              visibility: 'visible',
+            },
+            paint: {
+              'fill-color': 'red',
+              'fill-opacity': 0.1,
+            },
+          },
+          'boatIcon'
+        )
+        map.addLayer(
+          {
+            id: 'boat_accuracy_line',
+            type: 'line',
+            source: 'boat_accuracy',
+            layout: {
+              visibility: 'visible',
+            },
+            paint: {
+              'line-color': 'red',
+              'line-opacity': 0.8,
+              'line-width': 1,
+            },
           },
           'boatIcon'
         )

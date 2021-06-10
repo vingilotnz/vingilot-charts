@@ -3,8 +3,15 @@ const chalk = require('chalk')
 const boxen = require('boxen');
 const { networkInterfaces } = require('os');
 
+const pkg_info = require('./package.json')
+
 console.log(boxen(chalk`
-{bold.hex('#4296f5') charts.vingilot.nz} | {bold.hex('#f59342') version 0.0.4}
+{bold.hex('#4296f5') ${pkg_info.name}} | {bold.hex('#f59342') version ${pkg_info.version}}
+
+-------------------------------------------
+
+Author: ${pkg_info.author}
+Licence: ${pkg_info.licence}
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
 
 // Import and Set Nuxt.js options
