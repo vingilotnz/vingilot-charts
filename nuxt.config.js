@@ -71,7 +71,7 @@ module.exports = {
   },
 
   server: {
-    host: 0,
+    host: "dev.charts.local",
     port: 3000,
     https: {
       key: fs.readFileSync(path.resolve(__dirname, 'server.key')),

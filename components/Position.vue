@@ -144,21 +144,26 @@ function LocationManager() {
     // Auto restart on mobile devices
     window.addEventListener('pageshow', forceRestart, { once: true })
 
-    if (timeoutID) {
-      clearTimeout(timeoutID)
-      timeoutID = false
+    const resetTimeout = () => {
+      if (timeoutID) {
+        clearTimeout(timeoutID)
+        timeoutID = false
+      }
+
+      timeoutID = setTimeout(() => {
+        this.ready = false
+        this.stale = true
+        if (error) {
+          // error({ code: 4, message: 'Geolocation API may have stopped working!' })
+        }
+      }, this.timeout * 2)
     }
 
-    // timeoutID = setTimeout(() => {
-    //   this.ready = false
-    //   this.stale = true
-    //   if (error) {
-    //     error({ code: 4, message: 'Geolocation API may have stopped working!' })
-    //   }
-    // }, this.timeout + 2000)
+    resetTimeout()
 
     geoID = navigator.geolocation.watchPosition(
       (position) => {
+        resetTimeout()
         this.lastUpdate = this.time
         this.time = Date.now()
         const lastPos = this.position || {}
@@ -205,6 +210,10 @@ function LocationManager() {
         }
       },
       ({ code, message }) => {
+        if (timeoutID) {
+          clearTimeout(timeoutID)
+          timeoutID = false
+        }
         this.stale = true
         if (code === 1) {
           this.available = false
@@ -497,16 +506,12 @@ export default {
       return `Lat: ${lat}, Lng: ${lng}`
     },
     goToBoat() {
-      if (this.geo.ready) {
-        this.map.flyTo({
-          center: [this.geo.lngLat.lng, this.geo.lngLat.lat],
-        })
+      if (this.geo.lngLat) {
+        this.map.panTo([this.geo.lngLat.lng, this.geo.lngLat.lat])
       }
     },
     boatHandler() {
-      if (!this.geo.ready) {
-        return
-      }
+      if (!this.geo.lngLat) return
       this.lockOnBoat = !this.lockOnBoat
       if (this.lockOnBoat) {
         this.goToBoat()
@@ -520,6 +525,7 @@ export default {
       }
     },
     updateLocation({ position, lngLat, calculated }) {
+      // console.log(position)
       const cog = position.coords.heading
       const sog = position.coords.speed
       const accuracy = position.coords.accuracy || 0
@@ -550,9 +556,8 @@ export default {
         .getSource('boat_cog')
         .setData(constructCogGeoJSON(lngLat, dstLngLat))
       if (this.lockOnBoat) {
-        this.map.panTo([lngLat.lng, lngLat.lat])
+        this.goToBoat()
       }
-
       this.map
         .getSource('boat_accuracy')
         .setData(drawRealCircleGeoJSON(lngLat, accuracy))
@@ -562,7 +567,12 @@ export default {
       this.map.setLayoutProperty('boatIcon', 'visibility', 'visible')
     },
     locationErrorHandler({ code, message }) {
+      console.log(message)
       this.locationError = true
+      const src = this.map.getSource('boatIcon')
+      if (src) {
+        src.setData(src._data)
+      }
       setTimeout(() => {
         this.geo.start(this.updateLocation, this.locationErrorHandler)
       }, 1000)

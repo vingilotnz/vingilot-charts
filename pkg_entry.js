@@ -1,7 +1,10 @@
 const { loadNuxt } = require('nuxt-start')
 const chalk = require('chalk')
-const boxen = require('boxen');
-const { networkInterfaces } = require('os');
+const boxen = require('boxen')
+const { networkInterfaces } = require('os')
+
+const { isIP } = require('net')
+const bonjour = require('bonjour')()
 
 const pkg_info = require('./package.json')
 
@@ -11,7 +14,7 @@ console.log(boxen(chalk`
 -------------------------------------------
 
 Author: ${pkg_info.author}
-Licence: ${pkg_info.licence}
+Licence: ${pkg_info.license}
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
 
 // Import and Set Nuxt.js options
@@ -19,6 +22,12 @@ const config = require('./nuxt.config.js');
 
 const host = (config.server && config.server.host) || 0
 const port = (config.server && config.server.port) || 3000
+
+// advertise an HTTP server on port 3000
+if ( host && !isIP(host) )
+{
+    bonjour.publish({ name: "charts.vingilot.nz", host, type: 'https', port: port })
+}
 
 const args = process.argv.slice(2);
 
