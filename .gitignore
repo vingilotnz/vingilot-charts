@@ -88,3 +88,11 @@ sw.*
 
 # Vim swap files
 *.swp
+
+# Output directories
+build/*
+pkg/
+
+# Secrets
+server.crt
+server.key

@@ -2,7 +2,7 @@
   "name": "vingilot-charts",
   "version": "0.0.6",
   "description": "Charting server for vingilot",
-  "main": "index.js",
+  "main": "pkg_entry.js",
   "repository": "https://github.com/vingilotnz/vingilot-charts.git",
   "author": "Joshua BRADFIELD <joshbradfield@gmail.com>",
   "license": "CC-BY-NC-SA-4.0",
@@ -14,6 +14,7 @@
     "chalk": "^4.1.1",
     "chokidar": "^3.5.1",
     "core-js": "^3.9.1",
+    "express": "^4.17.1",
     "mapbox-gl": "^2.3.0",
     "mapbox-gl-vue": "^2.0.4",
     "nuxt": "^2.15.3",
@@ -30,14 +31,29 @@
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-vue": "^7.7.0",
     "postcss": "^8.2.8",
-    "prettier": "^2.2.1"
+    "prettier": "^2.2.1",
+    "ts-loader": "^9.2.3",
+    "webpack": "^4.46.0",
+    "webpack-cli": "^4.7.2"
   },
   "scripts": {
     "dev": "nuxt",
     "build": "nuxt build",
-    "generate": "nuxt generate",
+    "bundle": "webpack --config webpack.server.config.js",
+    "clean": "RD /S /Q pkg\\dist || echo Nothing to clean",
+    "copy_dist": "xcopy /I /S dist\\ pkg\\dist\\",
+    "package": "pkg build/package.json",
+    "release": "yarn build && yarn bundle && yarn clean && yarn copy_dist && yarn package ",
     "start": "nuxt start",
     "lint:js": "eslint --ext \".js,.vue\" --ignore-path .gitignore .",
     "lint": "yarn lint:js"
-  }
+  },
+  "pkg": {
+    "assets": "./dist/**/*",
+    "targets": [
+      "latest-win-x64"
+    ],
+    "outputPath": "pkg"
+  },
+  "bin": "build/bundle.js"
 }

@@ -1,6 +1,6 @@
 import MBTiles from '@mapbox/mbtiles'
 import chokidar from 'chokidar'
-const { basename } = require('path')
+import { basename } from 'path'
 
 export default function ({charts}) {
 

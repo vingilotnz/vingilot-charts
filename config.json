@@ -1,0 +1,14 @@
+{
+	"server": {
+		"host": "charts.local",
+		"port": 3000,
+		"https": {
+			"key": "./server.key",
+			"cert": "./server.crt"
+		}
+	},
+	"charts": [
+		"./Charts",
+		"C:\\Users\\joshb\\Documents\\vingilot\\Charts"
+	]
+}

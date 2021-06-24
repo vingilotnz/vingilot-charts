@@ -1,4 +1,3 @@
-const { loadNuxt } = require('nuxt-start')
 const chalk = require('chalk')
 const boxen = require('boxen')
 const { networkInterfaces } = require('os')
@@ -7,6 +6,34 @@ const { isIP } = require('net')
 const bonjour = require('bonjour')()
 
 const pkg_info = require('./package.json')
+
+const fs = require('fs')
+const express = require('express')
+const https = require('https')
+const path = require('path')
+
+import { exit } from 'process'
+import TileServer from './modules/mbtiles/tileServer.js'
+
+function getLocalFilePath (pathToFile) {
+    if (path.isAbsolute(pathToFile)) return pathToFile;
+    return path.join(process.cwd(), pathToFile);
+}
+
+const default_config = {
+	server: {
+		host: "charts.local",
+		port: 3000,
+		https: {
+			key: "./server.key",
+			cert: "./server.crt"
+		}
+	},
+	charts: [
+		"./Charts"
+	]
+}
+
 
 console.log(boxen(chalk`
 {bold.hex('#4296f5') ${pkg_info.name}} | {bold.hex('#f59342') version ${pkg_info.version}}
@@ -18,21 +45,63 @@ Licence: ${pkg_info.license}
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
 
 // Import and Set Nuxt.js options
-const config = require('./nuxt.config.js');
+//const config = require('./nuxt.config.js');
+
+
+// Load Config
+const config_path = getLocalFilePath('./config.json');
+let local_config = fs.existsSync(config_path)
+let config = default_config;
+if(local_config) {
+    try {
+        local_config = JSON.parse(fs.readFileSync(config_path))
+        config = { ...config, ...local_config }
+    } catch(err) {
+        console.warn(`Failed to load '${config_path}' :\r\n\t${err}`)
+        local_config = false
+    }
+}
+
+if(!local_config) 
+{
+    console.warn(`Using default configuration!`)
+}
+
+console.log(config)
 
 const host = (config.server && config.server.host) || 0
 const port = (config.server && config.server.port) || 3000
+const ssl = config.server.https || false
+
+if(ssl) 
+{
+    const key_path = getLocalFilePath(ssl.key);
+    const cert_path = getLocalFilePath(ssl.cert);
+
+    if ( ! fs.existsSync(key_path)) {
+        console.error(`SSL key '${key_path}' does not exist. Please check your ssl configuration.`);
+        exit(1)
+    }
+    else
+    {
+        ssl.key = fs.readFileSync(key_path)
+    }
+
+    if ( ! fs.existsSync(cert_path)) {
+        console.error(`SSL certificate '${cert_path}' does not exist. Please check your ssl configuration.`);
+        exit(1)
+    }
+    else
+    {
+        ssl.cert = fs.readFileSync(cert_path)
+    }
+}
+
 
 // advertise an HTTP server on port 3000
 if ( host && !isIP(host) )
 {
-    bonjour.publish({ name: "charts.vingilot.nz", host, type: 'https', port: port })
-}
-
-const args = process.argv.slice(2);
-
-if (args.length) {
-    config.charts = args
+    bonjour.publish({ name: "charts.vingilot.nz", host, type: ssl? 'https' : 'http', port: port })
 }
 
 
@@ -59,9 +128,31 @@ for (const name of Object.keys(nets)) {
     }
 }
 
+
+const app = express();
+let server = false;
+
+app.use(express.static('./dist'))
+
+
+if (ssl)
+{
+    server = https.createServer(ssl, app)
+}
+
 async function start () {
-    const nuxt = await loadNuxt('start')
-    await nuxt.listen(port, host)
+    
+    //
+    const tileServer = new TileServer({charts : config.charts})
+    tileServer.start()
+    
+    app.use('/tiles', tileServer.handler)
+
+    if (ssl) {
+        server.listen(port)
+    } else {
+        app.listen(port)
+    }
 
     if(host) {
         console.log(boxen(chalk`

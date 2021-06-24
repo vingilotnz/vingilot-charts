@@ -6,6 +6,8 @@ module.exports = {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
 
+  telemetry: false,
+
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
     title: 'charts.vingilot.nz',
@@ -48,11 +50,6 @@ module.exports = {
     '@nuxt/http',
     [ // mbtiles server
       '~/modules/mbtiles',
-      {
-        charts: [
-          "../../Charts"
-        ],
-      },
     ],
     //[ // Boat Data 
     //  '~/modules/boat',
@@ -71,12 +68,16 @@ module.exports = {
   },
 
   server: {
-    host: "dev.charts.local",
+    host: "charts.local",
     port: 3000,
     https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'server.key')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'server.crt'))
+      key: fs.readFileSync('./server.key'),
+      cert: fs.readFileSync( './server.crt')
     }
-  }
+  },
+
+  charts: [
+    "../../Charts"
+  ],
 
 }

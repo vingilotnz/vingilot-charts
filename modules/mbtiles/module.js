@@ -11,8 +11,8 @@ export default function (options) {
   console.log (`Creating MBTile Server (${namespace}, ${path})\n`)
 
   const charts = []
-  if (options.charts) charts.push(options.charts)
-  if (this.options.charts) charts.push(this.options.charts)
+  if (options && options.charts) charts.push(options.charts)
+  if (this.options && this.options.charts) charts.push(this.options.charts)
 
   const tileServer = new TileServer({ charts })
 
