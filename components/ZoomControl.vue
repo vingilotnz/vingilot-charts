@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute z-10 text-right m-3 right-0">
+  <div class="absolute z-10 text-right m-3 right-0 select-none">
     <!-- Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
       <symbol id="icon_plus" viewBox="0 0 24 24" fill="none">
