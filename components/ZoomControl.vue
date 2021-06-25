@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute z-10 inline-block text-right m-3 right-0">
+  <div class="absolute z-10 text-right m-3 right-0">
     <!-- Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
       <symbol id="icon_plus" viewBox="0 0 24 24" fill="none">
@@ -62,7 +62,7 @@
       tabindex="-1"
     >
       <div>
-        <button class="p-2" role="none" @click="map.zoomIn()">
+        <button class="p-2" role="none" @click="zoomIn()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="m-auto h-5 w-5"
@@ -73,7 +73,7 @@
         </button>
       </div>
       <div>
-        <button class="p-2" role="none" @click="map.zoomOut()">
+        <button class="p-2" role="none" @click="zoomOut()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="m-auto h-5 w-5"
@@ -88,7 +88,7 @@
           id="zoom_needle"
           class="p-2"
           role="none"
-          @click="map.resetNorth()"
+          @click="resetOrientation()"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -139,27 +139,26 @@
 <script>
 export default {
   props: {
-    map: {
-      type: Object,
-      default: () => {},
-    },
-    main: {
+    fullScreenId: {
       type: String,
       default: () => 'main',
     },
   },
   data() {
     return {
-      show: false,
-      bearing: 0,
       isFullscreen: false,
       canFullscreen: false,
     }
   },
+  computed: {
+    orientation() {
+      return this.$store.chartTable.orientation
+    },
+  },
   mounted() {
     if (document.fullscreenEnabled) {
       this.canFullscreen = true
-      const e = document.getElementById(this.main)
+      const e = document.getElementById(this.fullScreenId)
       e.onfullscreenchange = (event) => {
         const elem = event.target
         this.isFullscreen = document.fullscreenElement === elem
@@ -168,7 +167,7 @@ export default {
   },
   methods: {
     toggleFullscreen() {
-      const main = document.getElementById(this.main)
+      const main = document.getElementById(this.fullScreenId)
       if (this.isFullscreen) {
         document.exitFullscreen()
       } else {
@@ -177,17 +176,21 @@ export default {
         })
       }
     },
+    zoomIn() {
+      this.$store.commit('chartTable/zoomIn')
+    },
+    zoomOut() {
+      this.$store.commit('chartTable/zoomOut')
+    },
+    resetOrientation() {
+      this.$store.commit('chartTable/resetOrientation')
+    },
   },
   watch: {
-    map: {
-      handler(map, oldValue) {
-        this.bearing = map.getBearing()
-        const needle = document.getElementById('zoom_needle')
-        map.on('rotate', ({ target }) => {
-          this.bearing = target.getBearing()
-          needle.style.transform = `rotate(${-this.bearing}deg)`
-        })
-      },
+    '$store.state.chartTable.orientation'(orientation) {
+      document.getElementById(
+        'zoom_needle'
+      ).style.transform = `rotate(${-orientation}deg)`
     },
   },
 }

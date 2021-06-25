@@ -18,7 +18,7 @@ module.exports = {
       { charset: 'utf-8' },
       { name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
       { hid: 'description', name: 'description', content: '' },
-      { name: 'apple-mobile-web-app-capable', content:'yes' }
+      { name: 'apple-mobile-web-app-capable', content: 'yes' }
     ],
     link: [
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
@@ -28,7 +28,7 @@ module.exports = {
 
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
-    { src: 'mapbox-gl/dist/mapbox-gl.css', lang: 'css' },
+    { src: 'maplibre-gl/dist/maplibre-gl.css', lang: 'css' },
   ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
@@ -59,20 +59,27 @@ module.exports = {
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
+    loaders: {
+      css: { // Ignore missing images in source css :/
+        url (url) {
+          return fs.existsSync(url)
+        },
+      },
+    },
     plugins: [
       new webpack.ProvidePlugin({
         // global modules
-        mapboxgl: 'mapbox-gl',
+        //maplibregl: 'maplibre-gl',
       })
     ],
   },
 
   server: {
-    host: "charts.local",
+    host: 0,
     port: 3000,
     https: {
       key: fs.readFileSync('./server.key'),
-      cert: fs.readFileSync( './server.crt')
+      cert: fs.readFileSync('./server.crt')
     }
   },
 

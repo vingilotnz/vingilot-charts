@@ -90,7 +90,7 @@
           :key="layer.name"
           class="flex px-4 py-2 text-sm justify hover:font-bold"
           role="menuitem"
-          @click="toggleLayer(layer.id)"
+          @click="toggleLayer(layer)"
           draggable
         >
           <svg
@@ -98,10 +98,7 @@
             class="mr-3 my-auto -ml-2 h-4 w-4"
             stroke="currentColor"
           >
-            <use
-              v-if="layer.visibility == 'visible'"
-              xlink:href="#icon_check"
-            />
+            <use v-if="layer.visible" xlink:href="#icon_check" />
             <use v-else xlink:href="#icon_cross" />
           </svg>
           {{ layer.name }}
@@ -113,20 +110,21 @@
 
 <script>
 export default {
-  props: {
-    layers: {
-      type: Array,
-      default: () => [],
-    },
-    toggleLayer: {
-      type: Function,
-      default: () => 'none',
-    },
-  },
   data() {
     return {
       show: false,
+      // layers: [],
     }
+  },
+  computed: {
+    layers() {
+      return this.$store.state.charts.layers
+    },
+  },
+  methods: {
+    toggleLayer(layer) {
+      this.$store.commit('charts/toggle', layer)
+    },
   },
 }
 </script>

@@ -1,6 +1,6 @@
 {
   "name": "vingilot-charts",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "description": "Charting server for vingilot",
   "main": "pkg_entry.js",
   "repository": "https://github.com/vingilotnz/vingilot-charts.git",
@@ -15,10 +15,10 @@
     "chokidar": "^3.5.1",
     "core-js": "^3.9.1",
     "express": "^4.17.1",
-    "mapbox-gl": "^2.3.0",
-    "mapbox-gl-vue": "^2.0.4",
+    "maplibre-gl": "^1.14.1-rc.2",
     "nuxt": "^2.15.3",
-    "nuxt-start": "^2.15.6"
+    "nuxt-start": "^2.15.6",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@nuxtjs/eslint-config": "^6.0.0",

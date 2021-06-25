@@ -53,7 +53,6 @@ export default function (options) {
       prefix: false
     },
   )
-
 }
 
 module.exports.meta = require('./package.json')

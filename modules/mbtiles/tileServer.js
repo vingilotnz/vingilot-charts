@@ -223,7 +223,7 @@ export default function ({charts}) {
   const getTilesJson = ({ tileset_id, name, description, attribution, format, minzoom, maxzoom, bounds, version }) => {
     return {
       tilejson: '2.2.0',
-      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.{${format}}`],
+      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.${format}`],
       name, version, description, attribution, minzoom, maxzoom, bounds,
     }
   }
