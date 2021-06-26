@@ -4,6 +4,7 @@
     <ZoomControl fullScreenId="navstation" />
     <Layers />
     <Charts />
+    <Location />
   </div>
 </template>
 

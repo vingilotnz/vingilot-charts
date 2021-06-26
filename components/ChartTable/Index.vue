@@ -3,6 +3,7 @@
     <div :id="map_id" class="m-0 h-full box-border">
       <!-- chart here -->
     </div>
+    <ChartTableBoat :map="map" />
   </div>
 </template>
 
@@ -41,7 +42,7 @@ export default {
   data() {
     return {
       map_id: uuidv4(),
-      map: false,
+      map: {},
     }
   },
   watch: {
@@ -53,12 +54,12 @@ export default {
       },
     },
     '$store.state.chartTable.targetZoom'(zoom) {
-      if (this.map === undefined) return
+      if (!this.mapReady()) return
       if (this.$store.state.chartTable.zoom === zoom) return
       this.map.zoomTo(zoom)
     },
     '$store.state.chartTable.targetOrientation'(orientation) {
-      if (this.map === undefined) return
+      if (!this.mapReady()) return
       if (this.$store.state.chartTable.orientation === orientation) return
       this.map.rotateTo(orientation)
     },
@@ -70,7 +71,18 @@ export default {
       style: {
         version: 8,
         sources: {},
-        layers: [],
+        layers: [
+          {
+            id: '_charts',
+            type: 'background',
+            layout: { visibility: 'none' },
+          },
+          {
+            id: '_boat',
+            type: 'background',
+            layout: { visibility: 'none' },
+          },
+        ],
       },
       center: [0, 0],
       zoom: 1,
@@ -103,8 +115,11 @@ export default {
         this.$store.commit('chartTable/zoomTo', map.getZoom())
       })
     },
+    mapReady() {
+      return this.map && this.map.loaded
+    },
     updateChartLayer(layer) {
-      if (this.map === undefined) return false
+      if (!this.mapReady()) return false
       if (this.addChartLayer(layer)) return true
 
       const id = 'tile_' + layer.id
@@ -144,7 +159,7 @@ export default {
             visibility: layer.visible ? 'visible' : 'none',
           },
         }
-        this.map.addLayer(mbLayer)
+        this.map.addLayer(mbLayer, '_charts')
         return true
       }
       return false
