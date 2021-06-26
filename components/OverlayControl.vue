@@ -1,11 +1,19 @@
 <template>
   <div
-    class="absolute z-10 inline-block text-left m-3 select-none"
-    v-show="layers && layers.length"
+    class="absolute z-10 inline-block text-left ml-3 mt-16 select-none"
+    v-show="overlays"
     @focusout="onFocusOut"
   >
     <!-- Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
+      <symbol id="icon_overlays" viewBox="0 0 24 24" fill="none">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+        />
+      </symbol>
       <symbol id="icon_check" viewBox="0 0 24 24" fill="none">
         <path
           stroke-linecap="round"
@@ -20,14 +28,6 @@
           stroke-linejoin="round"
           stroke-width="2"
           d="M6 18L18 6M6 6l12 12"
-        />
-      </symbol>
-      <symbol id="icon_layers" viewBox="0 0 24 24" fill="none">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
         />
       </symbol>
     </svg>
@@ -57,7 +57,7 @@
         @click="show = !show"
       >
         <svg class="-mx-2 h-6 w-6" stroke="currentColor">
-          <use xlink:href="#icon_layers" visible />
+          <use xlink:href="#icon_overlays" visible />
         </svg>
       </button>
     </div>
@@ -88,11 +88,11 @@
     >
       <ul class="pl-2 pr-2 py-1" role="none">
         <li
-          v-for="layer in layers"
+          v-for="layer in overlays"
           :key="layer.name"
           class="flex px-4 py-2 text-sm justify hover:font-bold"
           role="menuitem"
-          @click="toggleLayer(layer)"
+          @click="toggleOverlay(layer)"
           draggable
         >
           <svg
@@ -115,17 +115,16 @@ export default {
   data() {
     return {
       show: false,
-      // layers: [],
     }
   },
   computed: {
-    layers() {
-      return this.$store.state.charts.layers
+    overlays() {
+      return this.$store.state.charts.overlays
     },
   },
   methods: {
-    toggleLayer(layer) {
-      this.$store.commit('charts/select', layer)
+    toggleOverlay(overlay) {
+      this.$store.commit('charts/toggleOverlay', overlay)
     },
     onFocusOut(event) {
       if (!event.currentTarget.contains(event.relatedTarget)) {

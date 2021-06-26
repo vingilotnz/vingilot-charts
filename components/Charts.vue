@@ -38,15 +38,29 @@ export default {
         contrast: 0,
         order: count++,
       }
-      const existing = this.$store.getters['charts/getLayerById'](tilesetId)
-      if (existing.length) {
-        console.log(existing)
-        existing.forEach((l) => {
+
+      // Add as chart
+      const existingLayers =
+        this.$store.getters['charts/getLayerById'](tilesetId)
+      if (existingLayers.length) {
+        existingLayers.forEach((l) => {
           // Todo : Update the properties with the latest data
           this.$store.commit('charts/remove', l)
         })
       }
       this.$store.commit('charts/add', layer)
+
+      // Add as overlay
+      const overlay = { ...layer, opacity: 0.3, visible: false }
+      const existingOverlays =
+        this.$store.getters['charts/getOverlayById'](tilesetId)
+      if (existingOverlays.length) {
+        existingOverlays.forEach((o) => {
+          // Todo : Update the properties with the latest data
+          this.$store.commit('charts/removeOverlay', o)
+        })
+      }
+      this.$store.commit('charts/addOverlay', overlay)
     }
   },
 }

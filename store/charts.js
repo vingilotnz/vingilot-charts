@@ -1,5 +1,6 @@
 export const state = () => ({
   layers: [],
+  overlays: [],
 })
 
 export const mutations = {
@@ -23,10 +24,28 @@ export const mutations = {
       l.visible = l === layer
     })
   },
+  addOverlay(state, overlay) {
+    state.overlays.push(overlay)
+  },
+  removeOverlay(state, overlay) {
+    state.overlays.splice(state.overlays.indexOf(overlay), 1)
+  },
+  setOrderOverlay(state, overlay, order) {
+    overlay.order = order
+  },
+  setVisibleOverlay(state, overlay, visible) {
+    overlay.visible = visible
+  },
+  toggleOverlay(state, overlay) {
+    overlay.visible = !overlay.visible
+  },
 }
 
 export const getters = {
   getLayerById: (state) => (id) => {
     return state.layers.filter((layer) => layer.id === id)
+  },
+  getOverlayById: (state) => (id) => {
+    return state.overlays.filter((overlay) => overlay.id === id)
   },
 }

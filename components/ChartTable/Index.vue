@@ -51,9 +51,16 @@ export default {
   watch: {
     '$store.state.charts.layers': {
       deep: true,
+      immediate: true,
       handler(val, oldVal) {
         val.forEach(this.updateChartLayer)
-        console.log('changed')
+      },
+    },
+    '$store.state.charts.overlays': {
+      deep: true,
+      immediate: true,
+      handler(val, oldVal) {
+        val.forEach(this.updateChartOverlay)
       },
     },
     '$store.state.chartTable.targetZoom'(zoom) {
@@ -92,6 +99,11 @@ export default {
         layers: [
           {
             id: '_charts',
+            type: 'background',
+            layout: { visibility: 'none' },
+          },
+          {
+            id: '_overlays',
             type: 'background',
             layout: { visibility: 'none' },
           },
@@ -219,8 +231,62 @@ export default {
           layout: {
             visibility: layer.visible ? 'visible' : 'none',
           },
+          paint: {
+            'raster-opacity': layer.opacity || 1,
+            'raster-contrast': layer.contrast || 0,
+          },
         }
         this.map.addLayer(mbLayer, '_charts')
+        return true
+      }
+      return false
+    },
+    updateChartOverlay(overlay) {
+      if (!this.mapReady()) return false
+      if (this.addChartOverlay(overlay)) return true
+
+      const id = 'overlay_' + overlay.id
+
+      if (this.map.getLayer(id) === undefined) return false
+
+      // const mbLayer = this.map.getLayer(id)
+
+      this.map.setLayoutProperty(
+        id,
+        'visibility',
+        overlay.visible ? 'visible' : 'none'
+      )
+      this.map.setPaintProperty(id, 'raster-opacity', overlay.opacity || 1)
+      this.map.setPaintProperty(id, 'raster-contrast', overlay.contrast || 0)
+
+      return true
+    },
+    addChartOverlay(overlay) {
+      if (!this.map) return false
+      const id = 'overlay_' + overlay.id
+      if (this.map.getSource(id) === undefined) {
+        const source = {
+          name: overlay.name,
+          type: overlay.type,
+          url: overlay.tileJsonUrl,
+          tileSize: overlay.tileSize,
+        }
+        this.map.addSource(id, source)
+      }
+      if (this.map.getLayer(id) === undefined) {
+        const mbLayer = {
+          id,
+          type: overlay.type,
+          source: id,
+          layout: {
+            visibility: overlay.visible ? 'visible' : 'none',
+          },
+          paint: {
+            'raster-opacity': overlay.opacity || 1,
+            'raster-contrast': overlay.contrast || 0,
+          },
+        }
+        this.map.addLayer(mbLayer, '_overlays')
         return true
       }
       return false

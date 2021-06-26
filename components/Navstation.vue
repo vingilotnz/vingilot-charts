@@ -4,6 +4,7 @@
     <ZoomControl fullScreenId="navstation" />
     <Dash />
     <LayersControl />
+    <OverlayControl />
     <Charts />
     <Location />
   </div>
