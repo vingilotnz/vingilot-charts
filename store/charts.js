@@ -19,3 +19,9 @@ export const mutations = {
     layer.visible = !layer.visible
   },
 }
+
+export const getters = {
+  getLayerById: (state) => (id) => {
+    return state.layers.filter((layer) => layer.id === id)
+  },
+}

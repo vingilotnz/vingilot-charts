@@ -19,6 +19,7 @@ export default {
       )
 
       const layer = {
+        // From tilejson
         id: tilesetId,
         name: tileset.name,
         type: tileset.type,
@@ -31,12 +32,20 @@ export default {
         maxzoom: tilejson.maxzoom,
         version: tilejson.version,
         bounds: tilejson.bounds,
+        // Application specific
         visible: count === 0,
         opacity: 1,
         contrast: 0,
         order: count++,
       }
-
+      const existing = this.$store.getters['charts/getLayerById'](tilesetId)
+      if (existing.length) {
+        console.log(existing)
+        existing.forEach((l) => {
+          // Todo : Update the properties with the latest data
+          this.$store.commit('charts/remove', l)
+        })
+      }
       this.$store.commit('charts/add', layer)
     }
   },
