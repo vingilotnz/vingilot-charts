@@ -7,6 +7,8 @@
 <script>
 import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js'
 
+import maplibregl from 'maplibre-gl'
+
 function destinationRL(startLngLat, heading, distance) {
   const λ1 = (startLngLat.lng * Math.PI) / 180
   const φ1 = (startLngLat.lat * Math.PI) / 180
@@ -55,57 +57,28 @@ function drawRealCircleGeoJSON(centerLatLon, radius, steps = 100) {
   return geojson
 }
 
-const boatIcon = (getLocation) => {
-  const size = 24
-  return {
-    width: size,
-    height: size,
-    data: new Uint8Array(size * size * 4),
-
-    // When the layer is added to the map,
-    // get the rendering context for the map canvas.
-    onAdd() {
-      const canvas = document.createElement('canvas')
-      canvas.width = this.width
-      canvas.height = this.height
-      this.context = canvas.getContext('2d')
-    },
-
-    // Call once before every frame where the icon will be used.
-    render() {
-      const boatPath = new Path2D('M12 19l9 2-9-18-9 18 9-2zm0 0v-8')
-      const context = this.context
-      const location = getLocation()
-      const heading = (location && location.cog) || 0
-
-      // Draw the outer circle.
-      context.clearRect(0, 0, this.width, this.height)
-      if (heading) {
-        context.translate(this.width / 2, this.height / 2)
-        context.rotate(heading * (Math.PI / 180))
-        context.translate(-this.width / 2, -this.height / 2)
-      }
-      context.strokeStyle = 'red'
-      context.lineWidth = 1
-      context.fillStyle =
-        !location || location.stale ? 'grey' : 'rgba(255, 100, 100, 1)'
-      context.fill(boatPath)
-      context.stroke(boatPath)
-      context.translate(this.width / 2, this.height / 2)
-      context.rotate(-heading * (Math.PI / 180))
-      context.translate(-this.width / 2, -this.height / 2)
-
-      // Update this image's data with data from the canvas.
-      this.data = context.getImageData(0, 0, this.width, this.height).data
-
-      // Continuously repaint the map, resulting
-      // in the smooth animation of the dot.
-      // map.triggerRepaint()
-
-      // Return `true` to let the map know that the image was updated.
-      return true
-    },
-  }
+const boatIcon = () => {
+  const el = document.createElement('div')
+  el.className = 'boatIcon hidden h-5 w-5'
+  el.innerHTML = `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="m-auto h-full w-full"
+      stroke="red"
+      fill="rgba(255, 100, 100, 1)"
+      viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+        />
+    </svg>`
+  return new maplibregl.Marker({
+    element: el,
+    rotationAlignment: 'map',
+  }).setLngLat([0, 0])
 }
 
 export default {
@@ -122,34 +95,33 @@ export default {
       stale: true,
       locationError: true,
       hasMap: false,
+      boatIcon: false,
     }
   },
   methods: {
     getLocation() {
       return this.location
     },
-    updateLocation({ position, accuracy, sog, cog }) {
+    updateLocation({ position, accuracy, sog, cog, stale }) {
       const pos = new LatLon(position.lat, position.lon)
-      this.location = { pos, accuracy, sog, cog }
+      this.location = { position: pos, accuracy, sog, cog, stale }
 
       const destination = sog
-        ? pos.destinationPoint(sog * 60 * 60, cog || 0)
+        ? pos.destinationPoint((sog || 0) * 60 * 60, cog || 0)
         : pos
 
       // console.log(destination)
 
       if (!this.hasMap) return
 
-      this.map.getSource('boat_icon').setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Point',
-          coordinates: [pos.lon, pos.lat], // icon position [lng, lat]
-        },
-      })
-
-      this.map.setLayoutProperty('boat_icon', 'visibility', 'visible')
+      this.boatIcon.setLngLat([pos.lon, pos.lat]) // icon position [lng, lat]
+      const boatIconEl = this.boatIcon.getElement()
+      boatIconEl.classList.remove('hidden')
+      this.boatIcon.setRotation(cog || 0)
+      boatIconEl.firstElementChild.setAttribute(
+        'fill',
+        stale ? 'grey' : 'rgba(255, 100, 100, 1)'
+      )
 
       this.map
         .getSource('boat_cog')
@@ -204,36 +176,12 @@ export default {
     connectToMap() {
       if (this.hasMap) this.disconnectMap()
 
+      this.boatIcon = boatIcon()
+
+      this.boatIcon.addTo(this.map)
+
       console.log('Adding boat sources')
-      // Add Boat Source
-      this.map.addImage('boat_icon', boatIcon(this.getLocation), {
-        pixelRatio: 1,
-      })
-      this.map.addSource('boat_icon', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [0, 0], // icon position [lng, lat]
-          },
-        },
-      })
-      this.map.addLayer(
-        {
-          id: 'boat_icon',
-          type: 'symbol',
-          source: 'boat_icon',
-          layout: {
-            'icon-image': 'boat_icon',
-            'icon-allow-overlap': true,
-            'icon-rotation-alignment': 'map',
-            visibility: 'none',
-          },
-        },
-        '_boat'
-      )
+
       // Add COG Source
       this.map.addSource('boat_cog', {
         type: 'geojson',
@@ -255,7 +203,7 @@ export default {
           },
           filter: ['in', '$type', 'LineString'],
         },
-        'boat_icon'
+        '_boat'
       )
       this.map.addLayer(
         {
@@ -271,7 +219,7 @@ export default {
           },
           filter: ['in', '$type', 'Point'],
         },
-        'boat_icon'
+        '_boat'
       )
       // Add Accuracy Circle
       this.map.addSource('boat_accuracy', {
@@ -288,7 +236,7 @@ export default {
             'fill-opacity': 0.1,
           },
         },
-        'boat_icon'
+        '_boat'
       )
       this.map.addLayer(
         {
@@ -304,7 +252,7 @@ export default {
             'line-width': 1,
           },
         },
-        'boat_icon'
+        '_boat'
       )
       this.hasMap = true
     },
@@ -317,13 +265,11 @@ export default {
         this.map.removeSource(sourceID)
     },
     disconnectMap() {
-      this.destroyLayer('boat_icon')
       this.destroyLayer('boat_accuracy_fill')
       this.destroyLayer('boat_accuracy_line')
       this.destroyLayer('boat_cog_line')
       this.destroyLayer('boat_cog_dest')
 
-      this.destroySource('boat_icon')
       this.destroySource('boat_accuracy')
       this.destroySource('boat_cog')
       this.hasMap = false
