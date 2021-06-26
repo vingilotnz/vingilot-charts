@@ -48,7 +48,7 @@ export const mutations = {
     })
   },
   setOverlayOpacity(state, { overlay, opacity }) {
-    overlay.opacity = opacity
+    overlay.opacity = Math.max(Math.min(opacity, 1), 0.0001)
   },
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="m-0 h-full box-border w-full absolute">
-    <div :id="map_id" class="m-0 h-full box-border">
+    <div :id="map_id" class="m-0 h-full box-border select-none">
       <!-- chart here -->
     </div>
     <ChartTableBoat :map="map" />

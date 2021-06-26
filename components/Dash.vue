@@ -1,5 +1,7 @@
 <template>
-  <div class="absolute z-10 inline-block text-left bottom-0 left-0 m-3">
+  <div
+    class="absolute z-10 inline-block text-left bottom-0 left-0 m-3 select-none"
+  >
     <!-- Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
       <symbol id="icon_boat" viewBox="0 0 24 24" fill="none">
