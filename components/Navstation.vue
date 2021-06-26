@@ -5,6 +5,7 @@
     <Dash />
     <LayersControl />
     <OverlayControl />
+    <OverlayOpacityControl />
     <Charts />
     <Location />
   </div>

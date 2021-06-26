@@ -93,7 +93,7 @@
           :key="layer.name"
           class="flex px-4 py-2 text-sm justify hover:font-bold"
           role="menuitem"
-          @click="toggleOverlay(layer)"
+          @click="selectOverlay(layer)"
           draggable
         >
           <svg
@@ -124,8 +124,12 @@ export default {
     },
   },
   methods: {
-    toggleOverlay(overlay) {
-      this.$store.commit('charts/toggleOverlay', overlay)
+    selectOverlay(overlay) {
+      if (overlay.visible) {
+        this.$store.commit('charts/toggleOverlay', overlay)
+      } else {
+        this.$store.commit('charts/selectOverlay', overlay)
+      }
     },
     onFocusOut(event) {
       if (!event.currentTarget.contains(event.relatedTarget)) {

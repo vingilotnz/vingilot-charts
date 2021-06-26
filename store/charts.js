@@ -24,6 +24,9 @@ export const mutations = {
       l.visible = l === layer
     })
   },
+  setLayerContrast(state, { layer, contrast }) {
+    layer.contrast = contrast
+  },
   addOverlay(state, overlay) {
     state.overlays.push(overlay)
   },
@@ -39,6 +42,14 @@ export const mutations = {
   toggleOverlay(state, overlay) {
     overlay.visible = !overlay.visible
   },
+  selectOverlay(state, overlay) {
+    state.overlays.forEach((o) => {
+      o.visible = o === overlay
+    })
+  },
+  setOverlayOpacity(state, { overlay, opacity }) {
+    overlay.opacity = opacity
+  },
 }
 
 export const getters = {
@@ -47,5 +58,11 @@ export const getters = {
   },
   getOverlayById: (state) => (id) => {
     return state.overlays.filter((overlay) => overlay.id === id)
+  },
+  getActiveLayers(state) {
+    return state.layers.filter((layer) => layer.visible)
+  },
+  getActiveOverlays(state) {
+    return state.overlays.filter((overlay) => overlay.visible)
   },
 }
