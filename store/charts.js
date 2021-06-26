@@ -18,6 +18,11 @@ export const mutations = {
   toggle(state, layer) {
     layer.visible = !layer.visible
   },
+  select(state, layer) {
+    state.layers.forEach((l) => {
+      l.visible = l === layer
+    })
+  },
 }
 
 export const getters = {

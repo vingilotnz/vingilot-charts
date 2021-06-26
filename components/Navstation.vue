@@ -3,7 +3,7 @@
     <ChartTable />
     <ZoomControl fullScreenId="navstation" />
     <Dash />
-    <Layers />
+    <LayersControl />
     <Charts />
     <Location />
   </div>
