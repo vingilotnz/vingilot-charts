@@ -3,6 +3,7 @@
     class="absolute z-10 inline-block text-left ml-3 mt-16 select-none"
     v-show="overlays"
     @focusout="onFocusOut"
+    @mouseleave="onFocusOut"
   >
     <!-- Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
