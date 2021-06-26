@@ -4,6 +4,7 @@ export const state = () => ({
   orientation: 0,
   targetOrientation: 0,
   maxZoom: 23,
+  followBoat: true,
 })
 
 export const mutations = {
@@ -27,5 +28,11 @@ export const mutations = {
   },
   resetOrientation(state) {
     state.targetOrientation = 0
+  },
+  followBoat(state, follow = true) {
+    state.followBoat = follow
+  },
+  toggleFollowBoat(state) {
+    state.followBoat = !state.followBoat
   },
 }

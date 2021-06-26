@@ -43,6 +43,9 @@ export default {
     return {
       map_id: uuidv4(),
       map: {},
+      moving: false,
+      followBoat: false,
+      boatPosition: false,
     }
   },
   watch: {
@@ -61,11 +64,26 @@ export default {
     '$store.state.chartTable.targetOrientation'(orientation) {
       if (!this.mapReady()) return
       if (this.$store.state.chartTable.orientation === orientation) return
-      this.map.rotateTo(orientation)
+      this.map.rotateTo(orientation, {}, { origin: 'non-user' })
+    },
+    '$store.state.chartTable.followBoat': {
+      immediate: true,
+      handler(followBoat) {
+        this.followBoat = followBoat
+        if (followBoat) this.goTo(this.$store.state.boat.position)
+      },
+    },
+    '$store.state.boat.position': {
+      immediate: true,
+      handler(position) {
+        this.boatPosition = position
+        if (this.$store.state.chartTable.followBoat) this.goTo(position)
+      },
     },
   },
   mounted() {
     preventDefaultTouchBehaviour()
+
     const map = new maplibregl.Map({
       container: this.map_id,
       style: {
@@ -99,6 +117,23 @@ export default {
   methods: {
     initaliseMap(map) {
       this.map = map
+
+      map.addControl(
+        new maplibregl.ScaleControl({
+          maxWidth: 200,
+          unit: 'nautical',
+        }),
+        'bottom-left'
+      )
+
+      map.addControl(
+        new maplibregl.ScaleControl({
+          maxWidth: 200,
+          unit: 'metric',
+        }),
+        'bottom-left'
+      )
+
       this.$store.state.charts.layers.forEach(this.updateChartLayer)
       map.on('rotate', ({ target }) => {
         this.$store.commit('chartTable/setOrientation', target.getBearing())
@@ -113,6 +148,32 @@ export default {
       map.on('zoomend', ({ target }) => {
         this.$store.commit('chartTable/setZoom', map.getZoom())
         this.$store.commit('chartTable/zoomTo', map.getZoom())
+      })
+      map.on('movestart', ({ origin }) => {
+        this.moving = true
+        if (origin !== 'non-user') {
+          // this.$store.commit('chartTable/followBoat', false)
+        }
+      })
+      map.on('moveend', ({ origin }) => {
+        this.moving = false
+        if (origin !== 'non-user') {
+          // this.$store.commit('chartTable/followBoat', false)
+          if (this.followBoat && this.boatPosition) {
+            this.goTo(this.boatPosition)
+          }
+        }
+      })
+      map.on('zoomstart', ({ origin }) => {
+        this.moving = true
+      })
+      map.on('zoomend', ({ origin }) => {
+        this.moving = false
+        if (origin !== 'non-user') {
+          if (this.followBoat && this.boatPosition) {
+            this.goTo(this.boatPosition)
+          }
+        }
       })
     },
     mapReady() {
@@ -164,6 +225,17 @@ export default {
       }
       return false
     },
+    goTo(point) {
+      if (!this.mapReady()) return
+      if (this.moving) return
+      this.map.panTo([point.lon, point.lat], {}, { origin: 'non-user' })
+    },
   },
 }
 </script>
+
+<style>
+.mapboxgl-ctrl-bottom-left {
+  bottom: 50px !important;
+}
+</style>

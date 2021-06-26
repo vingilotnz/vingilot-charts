@@ -132,8 +132,16 @@ export default {
           )
         )
 
-      this.map.setLayoutProperty('boat_cog_line', 'visibility', 'visible')
-      this.map.setLayoutProperty('boat_cog_dest', 'visibility', 'visible')
+      this.map.setLayoutProperty(
+        'boat_cog_line',
+        'visibility',
+        cog || cog === 0 ? 'visible' : 'none'
+      )
+      this.map.setLayoutProperty(
+        'boat_cog_dest',
+        'visibility',
+        sog || sog === 0 ? 'visible' : 'none'
+      )
 
       this.map
         .getSource('boat_accuracy')
