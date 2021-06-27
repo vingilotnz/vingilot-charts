@@ -43,8 +43,9 @@
     "bundle": "webpack --config webpack.server.config.js",
     "clean": "RD /S /Q pkg\\dist || echo Nothing to clean",
     "copy_dist": "xcopy /I /S dist\\ pkg\\dist\\",
+    "copy_binding": "xcopy /I /S ..\\binding\\* node_modules\\sqlite3\\lib\\binding",
     "package": "pkg build/package.json",
-    "release": "yarn build && yarn bundle && yarn clean && yarn copy_dist && yarn package ",
+    "release": "yarn build && yarn bundle && yarn clean && yarn copy_dist && yarn copy_binding && yarn package ",
     "start": "nuxt start",
     "lint:js": "eslint --ext \".js,.vue\" --ignore-path .gitignore .",
     "lint": "yarn lint:js"

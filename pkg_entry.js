@@ -75,6 +75,13 @@ const host = (config.server && config.server.host) || 0
 const port = (config.server && config.server.port) || 3000
 const ssl = config.server.https || false
 
+
+let protocol = 'http:'
+const app = express()
+let server = app;
+
+app.use(express.static('./dist'))
+
 if(ssl) 
 {
     const key_path = getLocalFilePath(ssl.key);
@@ -97,17 +104,9 @@ if(ssl)
     {
         ssl.cert = fs.readFileSync(cert_path)
     }
-}
 
-let protocol = 'http:'
-const app = express()
-let server = false;
-
-app.use(express.static('./dist'))
-
-if (ssl)
-{
     server = https.createServer(ssl, app)
+    app.use('/cert.crt', express.static(getLocalFilePath(cert_path)))
     protocol = 'https:'
 }
 
@@ -154,11 +153,7 @@ async function start () {
     
     app.use('/tiles', tileServer.handler)
 
-    if (ssl) {
-        server.listen(port)
-    } else {
-        app.listen(port)
-    }
+    server.listen(port)
 
     if(host) {
         console.log(boxen(chalk`
