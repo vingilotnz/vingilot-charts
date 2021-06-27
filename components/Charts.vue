@@ -9,13 +9,14 @@
 export default {
   async mounted() {
     const host = window.location.host
-    const sources = await this.$http.$get('https://' + host + '/tiles')
+    const protocol = window.location.protocol
+    const sources = await this.$http.$get(protocol + '//' + host + '/tiles')
 
     let count = 0
     for (const tilesetId in sources) {
       const tileset = sources[tilesetId]
       const tilejson = await this.$http.$get(
-        'https://' + host + '/' + tileset.url
+        protocol + '//' + host + '/' + tileset.url
       )
 
       const layer = {

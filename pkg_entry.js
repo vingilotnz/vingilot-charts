@@ -17,7 +17,7 @@ import TileServer from './modules/mbtiles/tileServer.js'
 
 function getLocalFilePath (pathToFile) {
     if (path.isAbsolute(pathToFile)) return pathToFile;
-    return path.join(process.cwd(), pathToFile);
+    return path.join(path.dirname(process.execPath), pathToFile);
 }
 
 const default_config = {
@@ -62,6 +62,8 @@ if(local_config) {
     }
 }
 
+config.charts = config.charts.map((chart) => getLocalFilePath(chart))
+
 if(!local_config) 
 {
     console.warn(`Using default configuration!`)
@@ -97,6 +99,19 @@ if(ssl)
     }
 }
 
+let protocol = 'http:'
+const app = express()
+let server = false;
+
+app.use(express.static('./dist'))
+
+if (ssl)
+{
+    server = https.createServer(ssl, app)
+    protocol = 'https:'
+}
+
+const link = `${protocol}//${host}:${port}/`
 
 // advertise an HTTP server on port 3000
 if ( host && !isIP(host) )
@@ -129,16 +144,7 @@ for (const name of Object.keys(nets)) {
 }
 
 
-const app = express();
-let server = false;
 
-app.use(express.static('./dist'))
-
-
-if (ssl)
-{
-    server = https.createServer(ssl, app)
-}
 
 async function start () {
     
@@ -156,15 +162,16 @@ async function start () {
 
     if(host) {
         console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on https://${host}:${port}/
+{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${link}
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722'}))
-    } else if (addresses.length == 1) {
+    }
+    if (addresses.length == 1) {
         console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on https://${addresses[0]}:${port}/
+{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${protocol}//${addresses[0]}:${port}/
 `, {padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722'}))
     } else {
         console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on https://*:${port}/
+{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${protocol}//*:${port}/
 
 Possible addresses (by network):
 ${res_str}`, {padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey'}))
