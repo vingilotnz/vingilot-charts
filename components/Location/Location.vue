@@ -27,6 +27,7 @@ export default {
         accuracy: position.coords.accuracy,
         cog: position.coords.heading || false,
         sog: position.coords.speed || false,
+        raw: { type: 'browser', data: position },
       })
     },
     locationErrorHandler({ code, message }) {

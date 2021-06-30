@@ -8,6 +8,7 @@
     <OverlayOpacityControl />
     <Charts />
     <Location />
+    <LocationTrack />
   </div>
 </template>
 

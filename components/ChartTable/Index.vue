@@ -93,6 +93,12 @@ export default {
 
     const map = new maplibregl.Map({
       container: this.map_id,
+      light: {
+        anchor: 'viewport',
+        color: 'white',
+        position: [1.15, 210, 30],
+        intensity: 0.2,
+      },
       style: {
         version: 8,
         sources: {},

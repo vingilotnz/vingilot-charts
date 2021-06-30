@@ -7,12 +7,17 @@ export const state = () => ({
   attempted: false,
   stale: true,
   staleTimeout: 10,
+  raw: {
+    type: '',
+    data: {},
+  },
+  track: []
 })
 
 export const mutations = {
   _setPosition(
     state,
-    { position, accuracy = false, sog = false, cog = false }
+    { position, accuracy = false, sog = false, cog = false, raw = { type: '', data: {}, } }
   ) {
     state.position = position
     state.accuracy = accuracy
@@ -22,6 +27,7 @@ export const mutations = {
     state.updated = now
     state.attempted = now
     state.stale = false
+    state.raw = raw
   },
   recordFailedAttempt(state) {
     const now = new Date()
@@ -30,6 +36,9 @@ export const mutations = {
   stale(state) {
     state.stale = true
   },
+  addToTrack(state, { position, accuracy, timestamp, sog, cog }) {
+    state.track.push({ position, accuracy, timestamp, sog, cog })
+  }
 }
 
 export const getters = {

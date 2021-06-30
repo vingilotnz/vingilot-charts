@@ -154,6 +154,55 @@ export default {
           'visible'
         )
       }
+
+      this.map
+        .getSource('boat_track')
+        .setData(this.constructTrackJSON(this.$store.state.boat.track, pos))
+      this.map
+        .getSource('boat_track_end')
+        .setData(this.constructTrackEndJSON(this.$store.state.boat.track, pos))
+    },
+    constructTrackJSON(track, position) {
+      const trackCoords = track.map(({ position }) => [
+        position.lon,
+        position.lat,
+      ])
+      return {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              id: 'boat_track_line',
+              type: 'LineString',
+              coordinates: trackCoords,
+            },
+          },
+        ],
+      }
+    },
+    constructTrackEndJSON(track, position) {
+      let trackLast = []
+      if (track.length) {
+        const last = track[track.length - 1].position
+        trackLast = [
+          [last.lon, last.lat],
+          [position.lon, position.lat],
+        ]
+      }
+      return {
+        type: 'FeatureCollection',
+        features: [
+          {
+            id: 'boat_track_end',
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: trackLast,
+            },
+          },
+        ],
+      }
     },
     constructCogGeoJSON(lngLat, destLngLat) {
       return {
@@ -189,6 +238,52 @@ export default {
       this.boatIcon.addTo(this.map)
 
       console.log('Adding boat sources')
+
+      // Add Track Source
+      this.map.addSource('boat_track', {
+        type: 'geojson',
+        data: this.constructTrackJSON([], { lng: 0, lat: 0 }),
+      }),
+      this.map.addSource('boat_track_end', {
+        type: 'geojson',
+        data: this.constructTrackEndJSON([], { lng: 0, lat: 0 }),
+      })
+      this.map.addLayer(
+        {
+          id: 'boat_track',
+          type: 'line',
+          source: 'boat_track',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+            visibility: 'visible',
+          },
+          paint: {
+            'line-color': 'yellow',
+            'line-width': 2,
+          },
+          filter: ['in', '$type', 'LineString'],
+        },
+        '_boat'
+      )
+      this.map.addLayer(
+        {
+          id: 'boat_track_end',
+          type: 'line',
+          source: 'boat_track_end',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+            visibility: 'visible',
+          },
+          paint: {
+            'line-color': 'grey',
+            'line-width': 2,
+          },
+          filter: ['in', '$type', 'LineString'],
+        },
+        '_boat'
+      )
 
       // Add COG Source
       this.map.addSource('boat_cog', {
