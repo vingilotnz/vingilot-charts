@@ -95,15 +95,16 @@ export default {
       locationError: true,
       hasMap: false,
       boatIcon: false,
+      boatTrack: [[]],
+      boatTrackCount: 0,
     }
   },
   methods: {
     getLocation() {
       return this.location
     },
-    updateLocation({ position, accuracy, sog, cog, stale }) {
-      const pos = new LatLon(position.lat, position.lon)
-      this.location = { position: pos, accuracy, sog, cog, stale }
+    updateLocation() {
+      const { position: pos, accuracy, sog, cog, stale } = this.location
 
       const destination = sog
         ? pos.destinationPoint((sog || 0) * 60 * 60, cog || 0)
@@ -155,30 +156,26 @@ export default {
       }
 
       this.map
-        .getSource('boat_track')
-        .setData(this.constructTrackJSON(this.$store.state.boat.track, pos))
-      this.map
         .getSource('boat_track_end')
-        .setData(this.constructTrackEndJSON(this.$store.state.boat.track, pos))
+        .setData(this.constructTrackEndJSON(this.boatTrack, pos))
     },
-    constructTrackJSON(track = []) {
-      const parts = []
-      let part = []
-      if (track.length) {
-        part = [[track[0].position.lon, track[0].position.lat]]
-      }
-      for (let i = 1; i < track.length; i++) {
-        const prev = track[i - 1]
-        const next = track[i]
-        const staleness = Math.abs(next.timestamp - prev.timestamp)
-        if (next.wasStale || staleness > 5 * 60 * 1000) {
-          parts.push(part)
-          part = []
-        }
-        part.push([next.position.lon, next.position.lat])
-      }
-      parts.push(part)
+    updateTrackOnMap() {
+      if (!this.hasMap) return
 
+      this.map
+        .getSource('boat_track')
+        .setData(this.constructTrackJSON(this.boatTrack))
+
+      if (this.location)
+        this.map
+          .getSource('boat_track_end')
+          .setData(
+            this.constructTrackEndJSON(this.boatTrack, this.location.position)
+          )
+
+      this.updateLocation()
+    },
+    constructTrackJSON(parts = [[]]) {
       const features = []
 
       parts.forEach((part) => {
@@ -217,14 +214,11 @@ export default {
         features,
       }
     },
-    constructTrackEndJSON(track = [], position = { lng: 0, lat: 0 }) {
+    constructTrackEndJSON(track = [[]], position = { lng: 0, lat: 0 }) {
       let trackLast = []
-      if (track.length) {
-        const last = track[track.length - 1].position
-        trackLast = [
-          [last.lon, last.lat],
-          [position.lon, position.lat],
-        ]
+      if (track.length && track[track.length - 1].length) {
+        const last = track[track.length - 1][track[track.length - 1].length - 1]
+        trackLast = [last, [position.lon, position.lat]]
       }
       return {
         type: 'FeatureCollection',
@@ -440,13 +434,49 @@ export default {
     beforeDestroy() {
       this.disconnectMap()
     },
+    updateTrack(track) {
+      if (track.length <= this.boatTrackCount) {
+        this.boatTrack = [[]]
+        this.boatTrackCount = 0
+      }
+
+      const parts = this.boatTrack
+      let part = parts[parts.length - 1]
+      let added = true
+      for (let i = this.boatTrackCount; i < track.length; i++) {
+        const entry = track[i]
+        if (entry.wasStale) {
+          parts.push(part)
+          part = []
+          added = false
+        }
+        part.push([entry.position.lon, entry.position.lat])
+      }
+      if (!added) parts.push(part)
+
+      this.boatTrack = parts
+      this.boatTrackCount = track.length
+
+      this.updateTrackOnMap()
+    },
   },
   watch: {
     '$store.state.boat.updated'() {
-      this.updateLocation(this.$store.state.boat)
+      const { position, accuracy, sog, cog, stale } = this.$store.state.boat
+      const pos = new LatLon(position.lat, position.lon)
+      this.location = { position: pos, accuracy, sog, cog, stale }
+      this.updateLocation()
     },
-    '$store.state.boat.stale'() {
-      this.updateLocation(this.$store.state.boat)
+    '$store.state.boat.stale'(stale) {
+      if (this.location) this.location.stale = stale
+      this.updateLocation()
+    },
+    '$store.state.boat.track': {
+      deep: true,
+      immediate: true,
+      handler(track) {
+        this.updateTrack(track)
+      },
     },
     map: {
       immediate: true,

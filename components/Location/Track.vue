@@ -17,22 +17,20 @@ class TrackManager {
   }) {
     this.saved = false
     this.last = false
-    this.freshness = false
+    this.wasStale = false
     this.timestamp = false
 
-    const doUpdate = (latest) => {
+    const doUpdate = (latest, wasStale = false) => {
       this.saved = latest
       if (onTrackUpdate)
         onTrackUpdate({
           ...latest,
-          wasStale:
-            this.freshness &&
-            this.freshness > freshnessLimitMinutes * 60 * 1000,
+          wasStale,
         })
     }
 
     this.updateLocation = ({ position, accuracy, timestamp, sog, cog }) => {
-      const latest = {
+      let latest = {
         position: new LatLon(position.lat, position.lon),
         accuracy,
         timestamp,
@@ -40,7 +38,7 @@ class TrackManager {
         cog,
       }
 
-      if (this.timestamp) this.freshness = timestamp - this.timestamp
+      const freshness = this.timestamp && timestamp - this.timestamp
       this.timestamp = timestamp
 
       if (!this.saved)
@@ -51,7 +49,11 @@ class TrackManager {
 
       if (latest.distance < accuracyLimit * accuracy) return
 
+      const wasStale =
+        freshness && freshness > freshnessLimitMinutes * 60 * 1000
+
       if (
+        wasStale ||
         latest.distance >= distanceLimitMeters ||
         Math.abs(latest.heading - this.saved.heading) >= headingLimitDegrees ||
         latest.position.crossTrackDistanceTo(
@@ -60,22 +62,25 @@ class TrackManager {
             latest.distance,
             this.saved.heading
           )
-        ) >= crossTrackLimitMeters
+        ) >= crossTrackLimitMeters ||
+        (this.last &&
+          Math.abs(
+            this.last.position.rhumbBearingTo(latest.position) -
+              this.last.heading
+          ) >= 90)
       ) {
         if (this.last) {
-          doUpdate(this.last)
-        } else {
+          doUpdate(this.last, false)
+        }
+
+        if (wasStale) {
           this.last = false
-          doUpdate(latest)
-          return
         }
-      } else if (this.last) {
-        const angle = this.last.position.rhumbBearingTo(latest.position)
-        if (Math.abs(angle - this.last.heading) >= 90) {
-          doUpdate(this.last)
+
+        if (!this.last) {
+          doUpdate(latest, wasStale)
+          latest = false
         }
-      } else {
-        // Ignore
       }
 
       this.last = latest
