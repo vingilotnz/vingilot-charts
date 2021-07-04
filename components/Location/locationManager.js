@@ -5,7 +5,6 @@ export default class LocationManager {
     this.available = !navigator.geolocation
     this.ready = false
     this.stale = true
-    this.lastUpdate = Date.UTC()
     this.timeout = 6000
     this.geoID = false
     this.timeoutID = false

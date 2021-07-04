@@ -23,15 +23,15 @@ export const mutations = {
       sog = false,
       cog = false,
       raw = { type: '', data: {} },
+      timestamp = new Date(),
     }
   ) {
     state.position = position
     state.accuracy = accuracy
     state.sog = sog
     state.cog = cog
-    const now = new Date()
-    state.updated = now
-    state.attempted = now
+    state.updated = timestamp
+    state.attempted = timestamp
     state.stale = false
     state.raw = raw
   },

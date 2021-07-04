@@ -25,6 +25,7 @@ export default {
       this.$store.dispatch('boat/updateLocation', {
         position: latLon,
         accuracy: position.coords.accuracy,
+        timestamp: position.timestamp,
         cog: position.coords.heading || false,
         sog: position.coords.speed || false,
         raw: { type: 'browser', data: position },

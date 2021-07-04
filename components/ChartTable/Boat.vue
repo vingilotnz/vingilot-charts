@@ -435,24 +435,23 @@ export default {
       this.disconnectMap()
     },
     updateTrack(track) {
-      if (track.length <= this.boatTrackCount) {
-        this.boatTrack = [[]]
-        this.boatTrackCount = 0
-      }
+      // Update or new track (TODO: make this more robust)
+      const update = track.length > this.boatTrackCount
+      const parts = update ? this.boatTrack : [[]]
+      const count = update ? this.boatTrackCount : 0
 
-      const parts = this.boatTrack
-      let part = parts[parts.length - 1]
-      let added = true
-      for (let i = this.boatTrackCount; i < track.length; i++) {
+      // Loop through track, and identify break points
+      for (let i = count; i < track.length; i++) {
         const entry = track[i]
-        if (entry.wasStale) {
-          parts.push(part)
-          part = []
-          added = false
+        const last = parts[parts.length - 1]
+        // This is a new "Part" (after a breakpoint)
+        if (entry.wasStale && last.length) {
+          parts.push([[entry.position.lon, entry.position.lat]])
+        } else {
+          // Add to the existing part
+          last.push([entry.position.lon, entry.position.lat])
         }
-        part.push([entry.position.lon, entry.position.lat])
       }
-      if (!added) parts.push(part)
 
       this.boatTrack = parts
       this.boatTrackCount = track.length
