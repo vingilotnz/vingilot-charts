@@ -13,13 +13,22 @@ class TrackManager {
     headingLimitDegrees = 5,
     crossTrackLimitMeters = 50,
     accuracyLimit = 1.5,
+    freshnessLimitMinutes = 1,
   }) {
     this.saved = false
     this.last = false
+    this.freshness = false
+    this.timestamp = false
 
     const doUpdate = (latest) => {
       this.saved = latest
-      if (onTrackUpdate) onTrackUpdate(latest)
+      if (onTrackUpdate)
+        onTrackUpdate({
+          ...latest,
+          wasStale:
+            this.freshness &&
+            this.freshness > freshnessLimitMinutes * 60 * 1000,
+        })
     }
 
     this.updateLocation = ({ position, accuracy, timestamp, sog, cog }) => {
@@ -30,6 +39,9 @@ class TrackManager {
         sog,
         cog,
       }
+
+      if (this.timestamp) this.freshness = timestamp - this.timestamp
+      this.timestamp = timestamp
 
       if (!this.saved)
         return doUpdate({ ...latest, heading: latest.cog, distance: 0 })
@@ -58,7 +70,7 @@ class TrackManager {
           return
         }
       } else if (this.last) {
-        const angle = this.last.position.initialBearingTo(latest.position)
+        const angle = this.last.position.rhumbBearingTo(latest.position)
         if (Math.abs(angle - this.last.heading) >= 90) {
           doUpdate(this.last)
         }
@@ -97,14 +109,8 @@ export default {
   },
   beforeDestroy() {},
   methods: {
-    addToTrack({ position, accuracy, sog, cog, timestamp }) {
-      this.$store.commit('boat/addToTrack', {
-        position,
-        accuracy,
-        sog,
-        cog,
-        timestamp,
-      })
+    addToTrack(latest) {
+      this.$store.commit('boat/addToTrack', latest)
     },
   },
 }

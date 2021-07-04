@@ -161,26 +161,63 @@ export default {
         .getSource('boat_track_end')
         .setData(this.constructTrackEndJSON(this.$store.state.boat.track, pos))
     },
-    constructTrackJSON(track, position) {
-      const trackCoords = track.map(({ position }) => [
-        position.lon,
-        position.lat,
-      ])
+    constructTrackJSON(track = []) {
+      const parts = []
+      let part = []
+      if (track.length) {
+        part = [[track[0].position.lon, track[0].position.lat]]
+      }
+      for (let i = 1; i < track.length; i++) {
+        const prev = track[i - 1]
+        const next = track[i]
+        const staleness = Math.abs(next.timestamp - prev.timestamp)
+        if (next.wasStale || staleness > 5 * 60 * 1000) {
+          parts.push(part)
+          part = []
+        }
+        part.push([next.position.lon, next.position.lat])
+      }
+      parts.push(part)
+
+      const features = []
+
+      parts.forEach((part) => {
+        features.push({
+          type: 'Feature',
+          properties: {
+            type: 'track',
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: part,
+          },
+        })
+      })
+
+      for (let i = 1; i < parts.length; i++) {
+        const pP = parts[i - 1]
+        const nP = parts[i]
+
+        if (!(pP.length && nP.length)) continue
+
+        features.push({
+          type: 'Feature',
+          properties: {
+            type: 'join',
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [pP[pP.length - 1], nP[0]],
+          },
+        })
+      }
+
       return {
         type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            geometry: {
-              id: 'boat_track_line',
-              type: 'LineString',
-              coordinates: trackCoords,
-            },
-          },
-        ],
+        features,
       }
     },
-    constructTrackEndJSON(track, position) {
+    constructTrackEndJSON(track = [], position = { lng: 0, lat: 0 }) {
       let trackLast = []
       if (track.length) {
         const last = track[track.length - 1].position
@@ -193,7 +230,6 @@ export default {
         type: 'FeatureCollection',
         features: [
           {
-            id: 'boat_track_end',
             type: 'Feature',
             geometry: {
               type: 'LineString',
@@ -230,7 +266,7 @@ export default {
       }
     },
     connectToMap() {
-      if (this.hasMap) this.disconnectMap()
+      this.disconnectMap()
 
       this.boatIcon = boatIcon()
 
@@ -241,15 +277,15 @@ export default {
       // Add Track Source
       this.map.addSource('boat_track', {
         type: 'geojson',
-        data: this.constructTrackJSON([], { lng: 0, lat: 0 }),
+        data: this.constructTrackJSON(),
       })
       this.map.addSource('boat_track_end', {
         type: 'geojson',
-        data: this.constructTrackEndJSON([], { lng: 0, lat: 0 }),
+        data: this.constructTrackEndJSON(),
       })
       this.map.addLayer(
         {
-          id: 'boat_track',
+          id: 'boat_track_line',
           type: 'line',
           source: 'boat_track',
           layout: {
@@ -261,7 +297,26 @@ export default {
             'line-color': 'rgba(255, 255, 0, 0.6)',
             'line-width': 2,
           },
-          filter: ['in', '$type', 'LineString'],
+          filter: ['in', 'type', 'track'],
+        },
+        '_boat'
+      )
+      this.map.addLayer(
+        {
+          id: 'boat_track_join',
+          type: 'line',
+          source: 'boat_track',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+            visibility: 'visible',
+          },
+          paint: {
+            'line-color': 'rgba(255, 255, 0, 0.6)',
+            'line-width': 2,
+            'line-dasharray': [4, 4],
+          },
+          filter: ['in', 'type', 'join'],
         },
         '_boat'
       )
@@ -372,9 +427,14 @@ export default {
       this.destroyLayer('boat_accuracy_line')
       this.destroyLayer('boat_cog_line')
       this.destroyLayer('boat_cog_dest')
+      this.destroyLayer('boat_track_line')
+      this.destroyLayer('boat_track_join')
+      this.destroyLayer('boat_track_end')
 
       this.destroySource('boat_accuracy')
       this.destroySource('boat_cog')
+      this.destroySource('boat_track')
+      this.destroySource('boat_track_end')
       this.hasMap = false
     },
     beforeDestroy() {

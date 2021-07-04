@@ -11,13 +11,19 @@ export const state = () => ({
     type: '',
     data: {},
   },
-  track: []
+  track: [],
 })
 
 export const mutations = {
   _setPosition(
     state,
-    { position, accuracy = false, sog = false, cog = false, raw = { type: '', data: {}, } }
+    {
+      position,
+      accuracy = false,
+      sog = false,
+      cog = false,
+      raw = { type: '', data: {} },
+    }
   ) {
     state.position = position
     state.accuracy = accuracy
@@ -36,9 +42,9 @@ export const mutations = {
   stale(state) {
     state.stale = true
   },
-  addToTrack(state, { position, accuracy, timestamp, sog, cog }) {
-    state.track.push({ position, accuracy, timestamp, sog, cog })
-  }
+  addToTrack(state, { position, accuracy, timestamp, sog, cog, wasStale }) {
+    state.track.push({ position, accuracy, timestamp, sog, cog, wasStale })
+  },
 }
 
 export const getters = {
