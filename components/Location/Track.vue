@@ -4,45 +4,69 @@
   </div>
 </template>
 <script>
-import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js'
+import LatLon from 'geodesy/latlon-spherical.js'
 
 class TrackManager {
   constructor({
     onTrackUpdate = false,
     distanceLimitMeters = 500,
     headingLimitDegrees = 5,
+    crossTrackLimitMeters = 50,
+    accuracyLimit = 1.5,
   }) {
+    this.saved = false
     this.last = false
-    this.lastAngle = false
 
-    const doUpdate = ({ position, accuracy, timestamp, sog, cog }) => {
-      this.last = {
-        position,
+    const doUpdate = (latest) => {
+      this.saved = latest
+      if (onTrackUpdate) onTrackUpdate(latest)
+    }
+
+    this.updateLocation = ({ position, accuracy, timestamp, sog, cog }) => {
+      const latest = {
+        position: new LatLon(position.lat, position.lon),
         accuracy,
         timestamp,
         sog,
         cog,
       }
-      if (onTrackUpdate)
-        onTrackUpdate({ position, accuracy, sog, cog, timestamp })
-    }
 
-    this.updateLocation = ({ position, accuracy, timestamp, sog, cog }) => {
-      const pos = new LatLon(position.lat, position.lon)
-      if (!this.last)
-        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
+      if (!this.saved)
+        return doUpdate({ ...latest, heading: latest.cog, distance: 0 })
 
-      const distance = this.last.position.distanceTo(pos)
-      if (distance >= distanceLimitMeters)
-        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
+      latest.distance = this.saved.position.rhumbDistanceTo(latest.position)
+      latest.heading = this.saved.position.rhumbBearingTo(latest.position)
 
-      if (distance < accuracy) return
+      if (latest.distance < accuracyLimit * accuracy) return
 
-      const angle = this.last.position.initialBearingTo(pos)
-      if (Math.abs(angle - this.last.cog) >= headingLimitDegrees)
-        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
+      if (
+        latest.distance >= distanceLimitMeters ||
+        Math.abs(latest.heading - this.saved.heading) >= headingLimitDegrees ||
+        latest.position.crossTrackDistanceTo(
+          this.saved.position,
+          this.saved.position.rhumbDestinationPoint(
+            latest.distance,
+            this.saved.heading
+          )
+        ) >= crossTrackLimitMeters
+      ) {
+        if (this.last) {
+          doUpdate(this.last)
+        } else {
+          this.last = false
+          doUpdate(latest)
+          return
+        }
+      } else if (this.last) {
+        const angle = this.last.position.initialBearingTo(latest.position)
+        if (Math.abs(angle - this.last.heading) >= 90) {
+          doUpdate(this.last)
+        }
+      } else {
+        // Ignore
+      }
 
-      // Ignore
+      this.last = latest
     }
   }
 }

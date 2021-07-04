@@ -1,4 +1,4 @@
-import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js'
+import LatLon from 'geodesy/latlon-spherical.js'
 
 export default class LocationManager {
   constructor() {

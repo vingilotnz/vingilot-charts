@@ -5,8 +5,7 @@
 </template>
 
 <script>
-import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js'
-
+import LatLon from 'geodesy/latlon-spherical.js'
 import maplibregl from 'maplibre-gl'
 
 function destinationRL(startLngLat, heading, distance) {
@@ -36,7 +35,7 @@ function destinationRL(startLngLat, heading, distance) {
   }
 }
 
-function drawRealCircleGeoJSON(centerLatLon, radius, steps = 100) {
+function drawRealCircleGeoJSON(centerLatLon, radius, steps = 32) {
   const points = []
   for (let i = 0; i <= steps; ++i) {
     const angle = (i * 360) / steps
@@ -259,7 +258,7 @@ export default {
             visibility: 'visible',
           },
           paint: {
-            'line-color': 'yellow',
+            'line-color': 'rgba(255, 255, 0, 0.6)',
             'line-width': 2,
           },
           filter: ['in', '$type', 'LineString'],
@@ -277,8 +276,9 @@ export default {
             visibility: 'visible',
           },
           paint: {
-            'line-color': 'grey',
+            'line-color': 'rgba(255, 255, 0, 0.6)',
             'line-width': 2,
+            'line-dasharray': [4, 4],
           },
           filter: ['in', '$type', 'LineString'],
         },
