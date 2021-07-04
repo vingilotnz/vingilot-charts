@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="fixed" style="height: 100%; width: 100%">
     <Nuxt />
   </div>
 </template>
@@ -16,6 +16,7 @@ html {
   -webkit-font-smoothing: antialiased;
   box-sizing: border-box;
   zoom: reset;
+  overscroll-behavior: contain;
 }
 
 *,

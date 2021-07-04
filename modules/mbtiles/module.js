@@ -14,7 +14,7 @@ export default function (options) {
   if (options && options.charts) charts.push(options.charts)
   if (this.options && this.options.charts) charts.push(this.options.charts)
 
-  const tileServer = new TileServer({ charts })
+  const tileServer = new TileServer({ charts, path: path.replace(/^\//,'') })
 
   // add all of the initial plugins
   const pluginsToSync = [
@@ -48,7 +48,7 @@ export default function (options) {
 
   this.addServerMiddleware(
     {
-      path: '/tiles',
+      path,
       handler: tileServer.handler,
       prefix: false
     },

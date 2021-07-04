@@ -243,7 +243,7 @@ export default {
       this.map.addSource('boat_track', {
         type: 'geojson',
         data: this.constructTrackJSON([], { lng: 0, lat: 0 }),
-      }),
+      })
       this.map.addSource('boat_track_end', {
         type: 'geojson',
         data: this.constructTrackEndJSON([], { lng: 0, lat: 0 }),

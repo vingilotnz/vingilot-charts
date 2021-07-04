@@ -2,7 +2,7 @@ import MBTiles from '@mapbox/mbtiles'
 import chokidar from 'chokidar'
 import { basename } from 'path'
 
-export default function ({charts}) {
+export default function ({charts, path}) {
 
   const mbtiles = new Map()
 
@@ -190,7 +190,7 @@ export default function ({charts}) {
       sources[tileset_id] = {
         name: mbtiles.get(tileset_id).name,
         type: 'raster',
-        url: `tiles/${tileset_id}.json`,
+        url: `${path}/${tileset_id}.json`,
         tileSize: 256,
       }
     }
@@ -223,7 +223,7 @@ export default function ({charts}) {
   const getTilesJson = ({ tileset_id, name, description, attribution, format, minzoom, maxzoom, bounds, version }) => {
     return {
       tilejson: '2.2.0',
-      tiles: [`tiles/${tileset_id}/{z}/{x}/{y}.${format}`],
+      tiles: [`${path}/${tileset_id}/{z}/{x}/{y}.${format}`],
       name, version, description, attribution, minzoom, maxzoom, bounds,
     }
   }

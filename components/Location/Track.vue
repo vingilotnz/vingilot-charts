@@ -30,17 +30,17 @@ class TrackManager {
     this.updateLocation = ({ position, accuracy, timestamp, sog, cog }) => {
       const pos = new LatLon(position.lat, position.lon)
       if (!this.last)
-        return doUpdate({ position:pos, accuracy, timestamp, sog, cog })
+        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
 
       const distance = this.last.position.distanceTo(pos)
       if (distance >= distanceLimitMeters)
-        return doUpdate({ position:pos, accuracy, timestamp, sog, cog })
-      
+        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
+
       if (distance < accuracy) return
 
       const angle = this.last.position.initialBearingTo(pos)
       if (Math.abs(angle - this.last.cog) >= headingLimitDegrees)
-        return doUpdate({ position:pos, accuracy, timestamp, sog, cog })
+        return doUpdate({ position: pos, accuracy, timestamp, sog, cog })
 
       // Ignore
     }

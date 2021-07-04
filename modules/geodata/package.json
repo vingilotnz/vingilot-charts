@@ -1,0 +1,9 @@
+{
+    "name": "geodata",
+    "version": "0.0.1",
+    "description": "Geodata server (routes and waypoints)",
+    "private": false,
+    "type" : "module",
+    "main": "module.js",
+    "license": "CC-BY-NC-SA-4.0"
+  }

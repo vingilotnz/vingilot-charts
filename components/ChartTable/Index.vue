@@ -12,14 +12,19 @@ import { v4 as uuidv4 } from 'uuid'
 
 import maplibregl from 'maplibre-gl'
 
+const style = {
+  line: 'rgba(55, 165, 228, 0.6)',
+  circle: 'rgba(255, 255, 255, 0.6)',
+}
+
 const preventDefaultTouchBehaviour = () => {
-  document.addEventListener(
-    'wheel',
-    (e) => {
-      e.preventDefault()
-    },
-    { passive: false }
-  )
+  // document.addEventListener(
+  //   'wheel',
+  //   (e) => {
+  //     e.preventDefault()
+  //   },
+  //   { passive: false }
+  // )
 
   document.addEventListener(
     'dblclick',
@@ -29,13 +34,13 @@ const preventDefaultTouchBehaviour = () => {
     { passive: false }
   )
 
-  document.addEventListener(
-    'touchmove',
-    (e) => {
-      e.preventDefault()
-    },
-    { passive: false }
-  )
+  // document.addEventListener(
+  //   'touchmove',
+  //   (e) => {
+  //     e._dontCancel || e.preventDefault()
+  //   },
+  //   { passive: false }
+  // )
 }
 
 export default {
@@ -61,6 +66,13 @@ export default {
       immediate: true,
       handler(val, oldVal) {
         val.forEach(this.updateChartOverlay)
+      },
+    },
+    '$store.state.routes.routes': {
+      deep: true,
+      immediate: true,
+      handler(val, oldVal) {
+        val.forEach(this.updateRouteLayer)
       },
     },
     '$store.state.chartTable.targetZoom'(zoom) {
@@ -110,6 +122,11 @@ export default {
           },
           {
             id: '_overlays',
+            type: 'background',
+            layout: { visibility: 'none' },
+          },
+          {
+            id: '_routes',
             type: 'background',
             layout: { visibility: 'none' },
           },
@@ -293,6 +310,102 @@ export default {
           },
         }
         this.map.addLayer(mbLayer, '_overlays')
+        return true
+      }
+      return false
+    },
+    updateRouteLayer(route) {
+      if (!this.mapReady()) return false
+      if (this.addRouteLayer(route)) return true
+
+      const id = 'route_' + route.id
+
+      if (this.map.getLayer(`${id}_line`) === undefined) return false
+
+      this.map.setLayoutProperty(
+        `${id}_line`,
+        'visibility',
+        route.visible ? 'visible' : 'none'
+      )
+
+      this.map.setLayoutProperty(
+        `${id}_points`,
+        'visibility',
+        route.visible ? 'visible' : 'none'
+      )
+
+      return true
+    },
+    addRouteLayer(route) {
+      if (!this.map) return false
+      const id = 'route_' + route.id
+      if (this.map.getSource(id) === undefined) {
+        const source = {
+          type: route.type,
+          data: route.data,
+        }
+        this.map.addSource(id, source)
+      }
+      if (this.map.getLayer(`${id}_line`) === undefined) {
+        const mbLayerLine = {
+          id: `${id}_line`,
+          type: 'line',
+          source: id,
+          layout: {
+            visibility: route.visible ? 'visible' : 'none',
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': style.line,
+            'line-width': 6,
+          },
+        }
+
+        const mbLayerPoints = {
+          id: `${id}_points`,
+          type: 'circle',
+          source: id,
+          layout: {
+            visibility: route.visible ? 'visible' : 'none',
+          },
+          paint: {
+            'circle-radius': 6,
+            'circle-color': style.line,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': style.circle,
+          },
+        }
+
+        this.map.addLayer(mbLayerPoints, '_routes')
+        this.map.addLayer(mbLayerLine, '_routes')
+        /*
+        const mbLayerLabel = {
+          id: `${id}_label`,
+          type: 'symbol',
+          source: id,
+          layout: {
+            visibility: route.visible ? 'visible' : 'none',
+            // 'text-transform': 'uppercase',
+            'text-letter-spacing': 0.4,
+            'text-max-width': 20,
+            'symbol-placement': 'line-center',
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Italic'],
+            'text-padding': 2,
+            'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10, 10, 18],
+            'symbol-avoid-edges': false,
+            'icon-padding': 5,
+          },
+          paint: {
+            'text-color': 'rgba(12, 74, 106, 1)',
+            'text-halo-width': 1,
+            'text-halo-color': 'hsl(84, 24%, 96%)',
+            'text-halo-blur': 1,
+          },
+        }
+        this.map.addLayer(mbLayerLabel, '_routes')
+        */
         return true
       }
       return false

@@ -51,10 +51,7 @@ module.exports = {
     [ // mbtiles server
       '~/modules/mbtiles',
     ],
-    //[ // Boat Data 
-    //  '~/modules/boat',
-    //  {},
-    //],
+    '~/modules/geodata',
   ],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
@@ -85,6 +82,9 @@ module.exports = {
 
   charts: [
     "../../Charts"
+  ],
+  routes: [
+    "../../Routes"
   ],
 
 }
