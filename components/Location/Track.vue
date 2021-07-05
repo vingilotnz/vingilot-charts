@@ -13,6 +13,7 @@ class TrackManager {
     headingLimitDegrees = 5,
     crossTrackLimitMeters = 50,
     accuracyLimit = 1.5,
+    accuracyThresholdMeters = 25,
     freshnessLimitMinutes = 1,
   }) {
     this.saved = false
@@ -37,6 +38,8 @@ class TrackManager {
         sog,
         cog,
       }
+
+      if(accuracy && accuracy > accuracyThresholdMeters) return
 
       const freshness = this.timestamp && timestamp - this.timestamp
       this.timestamp = timestamp
