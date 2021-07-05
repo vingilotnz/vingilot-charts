@@ -105,6 +105,7 @@ export default {
 
     const map = new maplibregl.Map({
       container: this.map_id,
+      maxTileCacheSize: 10000,
       light: {
         anchor: 'viewport',
         color: 'white',
