@@ -67,6 +67,7 @@ if (local_config) {
 }
 
 config.charts = config.charts.map((chart) => getLocalFilePath(chart))
+config.routes = config.routes.map((route) => getLocalFilePath(route))
 
 if (!local_config) {
   console.warn(`Using default configuration!`)
@@ -146,32 +147,23 @@ for (const name of Object.keys(nets)) {
 
 async function start() {
 
-  const tileServer = new TileServer({ charts: config.charts })
+  const tileServer = new TileServer({ charts: config.charts, path: 'tiles' })
   tileServer.start()
   app.use('/tiles', tileServer.handler)
 
-  const geoServer = new GeoServer({ routes: config.routes })
+  const geoServer = new GeoServer({ route_folder: config.routes, path: 'routes' })
   geoServer.start()
   app.use('/routes', geoServer.handler)
 
+  let availableOn = host ? `\n    - ${link}` : ``
+  addresses.forEach((address) => {
+    availableOn += `\n    - ${protocol}//${address}:${port}/`
+  })
+
   server.listen(port)
 
-  if (host) {
-    console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${link}
-`, { padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722' }))
-  }
-  if (addresses.length == 1) {
-    console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${protocol}//${addresses[0]}:${port}/
-`, { padding: 1, margin: 1, borderStyle: 'round', borderColor: '#368722' }))
-  } else {
-    console.log(boxen(chalk`
-{bold.hex('#FFFFFF').bgHex('#368722') Server UP} Available on ${protocol}//*:${port}/
-
-Possible addresses (by network):
-${res_str}`, { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'grey' }))
-  }
+  console.log(boxen(chalk`\n{bold.hex('#FFFFFF').bgHex('#368722') Server UP}\n\nAvailable on :${availableOn}\n`,
+    { padding: { top: 1, bottom: 1, right: 4, left: 4 }, margin: { top: 1, bottom: 1, right: 4, left: 4 }, borderStyle: 'round', borderColor: '#368722' }))
 
 
 }
