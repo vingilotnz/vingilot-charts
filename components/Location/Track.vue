@@ -39,7 +39,7 @@ class TrackManager {
         cog,
       }
 
-      if(accuracy && accuracy > accuracyThresholdMeters) return
+      if (accuracy && accuracy > accuracyThresholdMeters) return
 
       const freshness = this.timestamp && timestamp - this.timestamp
       this.timestamp = timestamp

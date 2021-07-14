@@ -42,6 +42,7 @@ export default class LocationManager {
         this.timeoutID = setTimeout(() => {
           this.ready = false
           this.stale = true
+          this.forceRestart && this.forceRestart()
         }, this.timeout * 2)
       }
 
