@@ -162,6 +162,11 @@ export default {
   mounted() {
     preventDefaultTouchBehaviour()
 
+    const host = window.location.host
+    const protocol = window.location.protocol
+
+    maplibregl.baseApiUrl = protocol + '//' + host
+
     const map = new maplibregl.Map({
       container: this.map_id,
       maxTileCacheSize: 10000,
@@ -174,6 +179,7 @@ export default {
       style: {
         version: 8,
         sources: {},
+        glyphs: `${protocol}//${host}/fonts/{fontstack}/{range}.pbf`,
         layers: [
           {
             id: '_charts',
@@ -394,6 +400,12 @@ export default {
         route.visible ? 'visible' : 'none'
       )
 
+      this.map.setLayoutProperty(
+        `${id}_label`,
+        'visibility',
+        route.visible ? 'visible' : 'none'
+      )
+
       return true
     },
     addRouteLayer(route) {
@@ -439,7 +451,7 @@ export default {
 
         this.map.addLayer(mbLayerPoints, '_routes')
         this.map.addLayer(mbLayerLine, '_routes')
-        /*
+
         const mbLayerLabel = {
           id: `${id}_label`,
           type: 'symbol',
@@ -465,7 +477,7 @@ export default {
           },
         }
         this.map.addLayer(mbLayerLabel, '_routes')
-        */
+
         return true
       }
       return false

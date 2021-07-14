@@ -52,6 +52,7 @@ module.exports = {
       '~/modules/mbtiles',
     ],
     '~/modules/geodata',
+    '~/modules/fonts',
   ],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
@@ -85,6 +86,9 @@ module.exports = {
   ],
   routes: [
     "../../Routes"
+  ],
+  fonts: [
+    "pkg/Fonts"
   ],
 
 }

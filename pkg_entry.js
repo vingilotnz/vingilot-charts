@@ -15,6 +15,8 @@ const path = require('path')
 const { exit } = require('process')
 import TileServer from './modules/mbtiles/tileServer.js'
 import GeoServer from './modules/geodata/geoServer.js'
+import FontServer from './modules/fonts/fontServer.js'
+
 
 
 function getLocalFilePath(pathToFile) {
@@ -39,6 +41,9 @@ const default_config = {
   ],
   routes: [
     "./Routes"
+  ],
+  fonts: [
+    "./Fonts"
   ]
 }
 
@@ -68,6 +73,7 @@ if (local_config) {
 
 config.charts = config.charts.map((chart) => getLocalFilePath(chart))
 config.routes = config.routes.map((route) => getLocalFilePath(route))
+config.fonts = config.fonts.map((font) => getLocalFilePath(font))
 
 if (!local_config) {
   console.warn(`Using default configuration!`)
@@ -154,6 +160,10 @@ async function start() {
   const geoServer = new GeoServer({ route_folder: config.routes, path: 'routes' })
   geoServer.start()
   app.use('/routes', geoServer.handler)
+
+  const fontServer = new FontServer({ font_folder: config.fonts, path: 'fonts' })
+  fontServer.start()
+  app.use('/fonts', fontServer.handler)
 
   let availableOn = host ? `\n    - ${link}` : ``
   addresses.forEach((address) => {

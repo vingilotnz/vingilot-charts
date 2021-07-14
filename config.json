@@ -10,5 +10,8 @@
 	"charts": [
 		"./Charts",
 		"C:\\Users\\joshb\\Documents\\vingilot\\Charts"
+	],
+	"fonts": [
+		"../fonts/_output"
 	]
 }
