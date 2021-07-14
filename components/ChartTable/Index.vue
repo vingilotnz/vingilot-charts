@@ -43,6 +43,65 @@ const preventDefaultTouchBehaviour = () => {
   // )
 }
 
+// Prepare this multiline string for correct display when the track covers the 180 meridien
+function fixMultiLineString(parts) {
+  const fixed = []
+
+  parts.length &&
+    parts[0].length &&
+    parts.forEach((part) => {
+      fixed.push([part[0]])
+      for (let i = 1; i < part.length; i++) {
+        const current = fixed[fixed.length - 1]
+        const prev = part[i - 1]
+        const next = part[i]
+        if (next[0] - prev[0] > 180 || prev[0] - next[0] > 180) {
+          const fixedLng = next[0] + (next[0] < prev[0] ? 360 : -360)
+          current.push([fixedLng, next[1]])
+          fixed.push([next])
+        } else {
+          current.push(next)
+        }
+      }
+    })
+
+  return fixed
+}
+
+function fixFeatureCollection(geojson) {
+  if (geojson.type !== 'FeatureCollection') return geojson
+
+  const features = []
+
+  geojson.features.forEach((feature) => {
+    if (feature.type !== 'Feature') return
+    const fixed = {
+      type: 'Feature',
+      properties: feature.properties,
+      geometry: {
+        type: 'MultiLineString',
+      },
+    }
+    if (feature.geometry.type === 'LineString') {
+      fixed.geometry.coordinates = fixMultiLineString([
+        feature.geometry.coordinates,
+      ])
+    } else if (feature.geometry.type === 'MultiLineString') {
+      fixed.geometry.coordinates = fixMultiLineString(
+        feature.geometry.coordinates
+      )
+    } else {
+      fixed.geometry.coordinates = feature.geometry.coordinates
+    }
+    features.push(fixed)
+  })
+
+  return {
+    type: 'FeatureCollection',
+    features,
+  }
+}
+
 export default {
   data() {
     return {
@@ -343,7 +402,7 @@ export default {
       if (this.map.getSource(id) === undefined) {
         const source = {
           type: route.type,
-          data: route.data,
+          data: fixFeatureCollection(route.data),
         }
         this.map.addSource(id, source)
       }

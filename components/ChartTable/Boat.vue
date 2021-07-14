@@ -56,6 +56,30 @@ function drawRealCircleGeoJSON(centerLatLon, radius, steps = 32) {
   return geojson
 }
 
+function fixPartsArray(parts) {
+  const fixed = []
+
+  parts.length &&
+    parts[0].length &&
+    parts.forEach((part) => {
+      fixed.push([part[0]])
+      for (let i = 1; i < part.length; i++) {
+        const current = fixed[fixed.length - 1]
+        const prev = part[i - 1]
+        const next = part[i]
+        if (next[0] - prev[0] > 180 || prev[0] - next[0] > 180) {
+          const fixedLng = next[0] + (next[0] < prev[0] ? 360 : -360)
+          current.push([fixedLng, next[1]])
+          fixed.push([next])
+        } else {
+          current.push(next)
+        }
+      }
+    })
+
+  return fixed
+}
+
 const boatIcon = () => {
   const el = document.createElement('div')
   el.className = 'boatIcon hidden h-5 w-5'
@@ -105,6 +129,8 @@ export default {
     },
     updateLocation() {
       const { position: pos, accuracy, sog, cog, stale } = this.location
+
+      if (!pos) return false
 
       const destination = sog
         ? pos.destinationPoint((sog || 0) * 60 * 60, cog || 0)
@@ -178,19 +204,6 @@ export default {
     constructTrackJSON(parts = [[]]) {
       const features = []
 
-      parts.forEach((part) => {
-        features.push({
-          type: 'Feature',
-          properties: {
-            type: 'track',
-          },
-          geometry: {
-            type: 'LineString',
-            coordinates: part,
-          },
-        })
-      })
-
       for (let i = 1; i < parts.length; i++) {
         const pP = parts[i - 1]
         const nP = parts[i]
@@ -208,6 +221,19 @@ export default {
           },
         })
       }
+
+      fixPartsArray(parts).forEach((part) => {
+        features.push({
+          type: 'Feature',
+          properties: {
+            type: 'track',
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: part,
+          },
+        })
+      })
 
       return {
         type: 'FeatureCollection',
@@ -234,6 +260,14 @@ export default {
       }
     },
     constructCogGeoJSON(lngLat, destLngLat) {
+      // Ensure that the longitude is rendered correctly
+      const lngFixed =
+        destLngLat.lng +
+        (destLngLat.lng - lngLat.lng > 180
+          ? -360
+          : lngLat.lng - destLngLat.lng > 180
+          ? 360
+          : 0)
       return {
         type: 'FeatureCollection',
         features: [
@@ -244,7 +278,7 @@ export default {
               type: 'LineString',
               coordinates: [
                 [lngLat.lng, lngLat.lat],
-                [destLngLat.lng, destLngLat.lat],
+                [lngFixed, destLngLat.lat],
               ],
             },
           },
@@ -265,8 +299,6 @@ export default {
       this.boatIcon = boatIcon()
 
       this.boatIcon.addTo(this.map)
-
-      console.log('Adding boat sources')
 
       // Add Track Source
       this.map.addSource('boat_track', {
