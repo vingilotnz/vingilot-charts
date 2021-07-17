@@ -459,14 +459,14 @@ export default {
           layout: {
             visibility: route.visible ? 'visible' : 'none',
             // 'text-transform': 'uppercase',
-            'text-letter-spacing': 0.4,
+            'text-letter-spacing': 0.1,
             'text-max-width': 20,
             'symbol-placement': 'line-center',
             'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Italic'],
+            'text-font': ['Roboto Regular'],
             'text-padding': 2,
             'text-size': ['interpolate', ['linear'], ['zoom'], 1, 10, 10, 18],
-            'symbol-avoid-edges': false,
+            'symbol-avoid-edges': true,
             'icon-padding': 5,
           },
           paint: {
