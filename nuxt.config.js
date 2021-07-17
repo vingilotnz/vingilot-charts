@@ -1,7 +1,5 @@
 const path = require('path')
 const fs = require('fs')
-const webpack = require('webpack');
-
 module.exports = {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
@@ -16,13 +14,13 @@ module.exports = {
     },
     meta: [
       { charset: 'utf-8' },
-      { name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
-      { hid: 'description', name: 'description', content: '' },
-      { name: 'apple-mobile-web-app-capable', content: 'yes' }
+      //{ name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
+      //{ hid: 'description', name: 'description', content: '' },
+      //{ name: 'apple-mobile-web-app-capable', content: 'yes' }
     ],
     link: [
-      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-      { rel: 'mask-icon', type: 'image/svg+xml', href: '/favicon.svg' }
+      //{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      //{ rel: 'mask-icon', type: 'image/svg+xml', href: '/favicon.svg' }
     ],
   },
 
@@ -43,14 +41,14 @@ module.exports = {
     '@nuxtjs/eslint-module',
     // https://go.nuxtjs.dev/tailwindcss
     '@nuxtjs/tailwindcss',
+    // https://pwa.nuxtjs.org/
+    '@nuxtjs/pwa',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     '@nuxt/http',
-    [ // mbtiles server
-      '~/modules/mbtiles',
-    ],
+    '~/modules/mbtiles',
     '~/modules/geodata',
     '~/modules/fonts',
   ],
@@ -59,16 +57,12 @@ module.exports = {
   build: {
     loaders: {
       css: { // Ignore missing images in source css :/
-        url (url) {
+        url(url) {
           return fs.existsSync(url)
         },
       },
     },
     plugins: [
-      new webpack.ProvidePlugin({
-        // global modules
-        //maplibregl: 'maplibre-gl',
-      })
     ],
   },
 
@@ -78,6 +72,13 @@ module.exports = {
     https: {
       key: fs.readFileSync('./server.key'),
       cert: fs.readFileSync('./server.crt')
+    }
+  },
+
+  pwa: {
+    meta: {
+      mobileAppIOS: true,
+      nativeUI: true
     }
   },
 
