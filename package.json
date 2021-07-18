@@ -22,6 +22,7 @@
     "maplibre-gl": "^1.14.1-rc.2",
     "nmea": "^0.1.2",
     "nmea-simple": "^3.2.0",
+    "nosleep.js": "^0.12.0",
     "nuxt": "^2.15.3",
     "nuxt-start": "^2.15.6",
     "nuxt-vuex-localstorage": "^1.3.0",

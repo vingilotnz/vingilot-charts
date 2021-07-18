@@ -13,6 +13,8 @@
     <DataRoutes />
     <Location />
     <LocationTrack />
+    <!-- Utility -->
+    <WakeLock />
   </div>
 </template>
 
