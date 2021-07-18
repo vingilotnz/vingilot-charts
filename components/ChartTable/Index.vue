@@ -134,15 +134,21 @@ export default {
         val.forEach(this.updateRouteLayer)
       },
     },
-    '$store.state.chartTable.targetZoom'(zoom) {
-      if (!this.mapReady()) return
-      if (this.$store.state.chartTable.zoom === zoom) return
-      this.map.zoomTo(zoom)
+    '$store.state.chartTable.targetZoom': {
+      immediate: true,
+      handler(zoom) {
+        if (!this.mapReady()) return
+        if (this.$store.state.chartTable.zoom === zoom) return
+        this.map.zoomTo(zoom)
+      },
     },
-    '$store.state.chartTable.targetOrientation'(orientation) {
-      if (!this.mapReady()) return
-      if (this.$store.state.chartTable.orientation === orientation) return
-      this.map.rotateTo(orientation, {}, { origin: 'non-user' })
+    '$store.state.chartTable.targetOrientation': {
+      immediate: true,
+      handler(orientation) {
+        if (!this.mapReady()) return
+        if (this.$store.state.chartTable.orientation === orientation) return
+        this.map.rotateTo(orientation, {}, { origin: 'non-user' })
+      },
     },
     '$store.state.chartTable.followBoat': {
       immediate: true,
@@ -204,7 +210,7 @@ export default {
         ],
       },
       center: [0, 0],
-      zoom: 1,
+      zoom: this.$store.state.chartTable.targetZoom,
       maxPitch: 0,
       pitchWithRotate: false,
       touchPitch: false,

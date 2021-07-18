@@ -1,3 +1,9 @@
+import VuexPersistence from 'vuex-persist'
+
+const vuexLocal = new VuexPersistence({
+  storage: window.localStorage
+})
+
 export const state = () => ({
   zoom: 1,
   targetZoom: 1,
@@ -36,3 +42,7 @@ export const mutations = {
     state.followBoat = !state.followBoat
   },
 }
+
+export const plugins = [
+  vuexLocal,
+]
