@@ -76,6 +76,9 @@ module.exports = {
   },
 
   pwa: {
+    manifest: {
+      start_url: '/'
+    },
     meta: {
       mobileAppIOS: true,
       nativeUI: true
