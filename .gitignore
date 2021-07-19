@@ -91,6 +91,8 @@ sw.*
 
 # Service worker files
 sw.*
+static/workbox/*.js
+static/workbox/*.mjs
 
 # Output directories
 build/*

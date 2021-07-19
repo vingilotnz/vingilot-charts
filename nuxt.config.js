@@ -84,6 +84,9 @@ module.exports = {
     meta: {
       mobileAppIOS: true,
       nativeUI: true
+    },
+    workbox: {
+      workboxURL: '/workbox/workbox-sw.js'
     }
   },
 
