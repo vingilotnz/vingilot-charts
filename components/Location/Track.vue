@@ -11,10 +11,11 @@ class TrackManager {
     onTrackUpdate = false,
     distanceLimitMeters = 500,
     headingLimitDegrees = 5,
-    crossTrackLimitMeters = 50,
+    crossTrackLimitMeters = 25,
     accuracyLimit = 1.5,
-    accuracyThresholdMeters = 25,
+    accuracyThresholdMeters = 20,
     freshnessLimitMinutes = 1,
+    last = false,
   }) {
     this.saved = false
     this.last = false
@@ -39,7 +40,7 @@ class TrackManager {
         cog,
       }
 
-      if (accuracy && accuracy > accuracyThresholdMeters) return
+      if (!accuracy || accuracy > accuracyThresholdMeters) return
 
       const freshness = this.timestamp && timestamp - this.timestamp
       this.timestamp = timestamp
@@ -103,6 +104,7 @@ export default {
       if (!this.trackManager) return
       if (!updated) return
       const { position, accuracy, sog, cog } = this.$store.state.boat
+      if (!position || !accuracy) return
       this.trackManager.updateLocation({
         position,
         accuracy,
@@ -113,7 +115,16 @@ export default {
     },
   },
   mounted() {
-    this.trackManager = new TrackManager({ onTrackUpdate: this.addToTrack })
+    console.dir(
+      this.$store.state.boat.track.length && this.$store.state.boat.track[0]
+    )
+    this.trackManager = new TrackManager({
+      onTrackUpdate: this.addToTrack,
+      last:
+        (this.$store.state.boat.track.length &&
+          this.$store.state.boat.track[0]) ||
+        false,
+    })
   },
   beforeDestroy() {},
   methods: {

@@ -14,9 +14,9 @@ module.exports = {
     },
     meta: [
       { charset: 'utf-8' },
-      //{ name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
-      //{ hid: 'description', name: 'description', content: '' },
-      //{ name: 'apple-mobile-web-app-capable', content: 'yes' }
+      { name: 'viewport', content: 'user-scalable=no, width=device-width, minimum-scale=1,  maximum-scale=1' },
+      { hid: 'description', name: 'description', content: '' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' }
     ],
     link: [
       //{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
@@ -31,7 +31,7 @@ module.exports = {
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
-    { src: '~/plugins/vuex-persist', ssr: false }
+    // { src: '~/plugins/vuex-persist', ssr: false }
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -44,7 +44,7 @@ module.exports = {
     // https://go.nuxtjs.dev/tailwindcss
     '@nuxtjs/tailwindcss',
     // https://pwa.nuxtjs.org/
-    '@nuxtjs/pwa',
+    //'@nuxtjs/pwa',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
