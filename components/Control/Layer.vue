@@ -1,6 +1,6 @@
 <template>
   <div
-    class="absolute z-10 inline-block text-left m-3 select-none"
+    class="absolute z-10 inline-block text-left ml-3 mt-3 select-none h-fill"
     v-show="layers && layers.length"
     @focusout="onFocusOut"
     @mouseleave="onFocusOut"
@@ -69,10 +69,11 @@
         menu-drop-down
         is-shown
         origin-top-left
-        fixed
+        absolute
         left-0
         mt-0
         ml-14
+        mb-auto
         w-max
         rounded-b-md rounded-r-md
         shadow-lg
@@ -86,6 +87,7 @@
       aria-orientation="vertical"
       aria-labelledby="menu-button"
       tabindex="-1"
+      style="overflow-y: auto; max-height: calc(100vh - 86px)"
     >
       <ul class="pl-2 pr-2 py-1" role="none">
         <li

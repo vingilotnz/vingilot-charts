@@ -103,8 +103,8 @@ export default function ({charts, path}) {
   // Uses "Connect" https://github.com/senchalabs/connect#appuseroute-fn
   const tileRequestHandler = (req, res, next) => {
 
-    const mapbox_url_format = /^\/(?:(?<tileset_id>[\w\.]+)\/)?(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)(?<dpi>@2x)?(?:\.(?<format>[\w\.]+))?/
-    let args = req.url.match(mapbox_url_format)
+    const mapbox_url_format = /^\/(?:(?<tileset_id>[^\/]+)\/)(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)(?<dpi>@2x)?(?:\.(?<format>[\w\.]+))?/
+    let args = decodeURI(req.url).match(mapbox_url_format)
 
     if ((args == undefined) || (args.groups == undefined)) {
       return false;
@@ -203,7 +203,7 @@ export default function ({charts, path}) {
   }
 
   const tileListHandler = (req, res, next) => {
-    if (!req.url.match(/^\/(?:\?.*)?/)) {
+    if (!decodeURI(req.url).match(/^\/(?:\?.*)?/)) {
       next()
       return false
     }
@@ -229,7 +229,7 @@ export default function ({charts, path}) {
   }
 
   const tileJSONHandler = (req, res) => {
-    let args = req.url.match(/^\/(?<tileset_id>[^\/]+?)(?:\.json)?(?:\?.*)?$/)
+    let args = decodeURI(req.url).match(/^\/(?<tileset_id>[^\/]+?)(?:\.json)?(?:\?.*)?$/)
     if ((args == undefined) || (args.groups == undefined)) {
       return false;
     }

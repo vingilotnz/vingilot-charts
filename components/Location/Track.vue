@@ -115,16 +115,7 @@ export default {
     },
   },
   mounted() {
-    console.dir(
-      this.$store.state.boat.track.length && this.$store.state.boat.track[0]
-    )
-    this.trackManager = new TrackManager({
-      onTrackUpdate: this.addToTrack,
-      last:
-        (this.$store.state.boat.track.length &&
-          this.$store.state.boat.track[0]) ||
-        false,
-    })
+    this.trackManager = new TrackManager({ onTrackUpdate: this.addToTrack })
   },
   beforeDestroy() {},
   methods: {
